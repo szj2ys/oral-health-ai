@@ -1,9 +1,39 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Camera, FileText, History, Shield, Sparkles, ChevronRight } from "lucide-react";
+import { WebSiteJsonLd, SoftwareApplicationJsonLd, OrganizationJsonLd } from "@/components/seo/JsonLd";
+
+export const metadata: Metadata = {
+  title: "居家口腔健康AI初筛 - 智能口腔检查工具",
+  description:
+    "免费使用AI技术在家进行口腔健康初筛，智能识别龋齿、牙龈红肿、牙结石等口腔问题。无需预约，手机拍照即可获得专业级口腔健康评估报告。",
+  keywords: [
+    "口腔健康检测",
+    "AI口腔检查",
+    "牙齿健康自测",
+    "牙龈问题检测",
+    "口腔初筛",
+    "手机口腔检查",
+  ],
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "居家口腔健康AI初筛 - 智能口腔检查工具",
+    description: "免费使用AI技术在家进行口腔健康初筛，智能识别口腔问题。",
+    url: "/",
+    type: "website",
+  },
+};
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+      {/* SEO结构化数据 */}
+      <WebSiteJsonLd />
+      <SoftwareApplicationJsonLd />
+      <OrganizationJsonLd />
+
       {/* Header */}
       <header className="sticky top-0 z-50 backdrop-blur-lg bg-white/80 border-b border-slate-200">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
@@ -12,10 +42,10 @@ export default function Home() {
             <span className="font-semibold text-slate-900">张二口腔AI</span>
           </div>
           <nav className="flex items-center gap-6">
-            <Link href="/scan" className="text-sm text-slate-600 hover:text-blue-600 transition-colors">
+            <Link href="/scan/" className="text-sm text-slate-600 hover:text-blue-600 transition-colors">
               开始检测
             </Link>
-            <Link href="/history" className="text-sm text-slate-600 hover:text-blue-600 transition-colors">
+            <Link href="/history/" className="text-sm text-slate-600 hover:text-blue-600 transition-colors">
               历史记录
             </Link>
           </nav>
@@ -39,7 +69,7 @@ export default function Home() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
-              href="/scan"
+              href="/scan/"
               className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200"
             >
               <Camera className="w-5 h-5" />
@@ -114,7 +144,7 @@ export default function Home() {
           <h2 className="text-2xl font-bold text-slate-900 mb-4">开始关注您的口腔健康</h2>
           <p className="text-slate-600 mb-8">仅需几分钟，即可获取专业的口腔健康初筛结果</p>
           <Link
-            href="/scan"
+            href="/scan/"
             className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200"
           >
             <Camera className="w-5 h-5" />
