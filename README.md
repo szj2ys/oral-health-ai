@@ -17,9 +17,9 @@
 
 - **前端**: Next.js 15 + React 19 + TypeScript + Tailwind CSS
 - **后端**: Next.js API Routes + Server Actions
-- **AI**: 多模态AI模型（图像识别 + 自然语言处理）
+- **AI**: Claude API / GPT-4V 多模态分析
 - **数据库**: PostgreSQL + Prisma ORM
-- **存储**: 云对象存储（口腔照片）
+- **存储**: Vercel Blob（口腔照片）
 - **部署**: Vercel
 
 ## 项目结构
@@ -31,52 +31,186 @@ oral-health-ai/
 │   │   ├── page.tsx         # 首页
 │   │   ├── layout.tsx       # 根布局
 │   │   ├── scan/            # 口腔扫描功能
-│   │   ├── report/          # 健康报告
 │   │   ├── history/         # 历史记录
 │   │   └── api/             # API路由
+│   │       ├── analyze/     # AI分析API
+│   │       ├── upload/      # 文件上传API
+│   │       └── history/     # 历史记录API
 │   ├── components/          # 公共组件
 │   ├── lib/                 # 工具函数
+│   │   ├── ai.ts           # AI服务
+│   │   ├── db.ts           # 数据库客户端
+│   │   └── utils.ts        # 工具函数
 │   ├── types/               # TypeScript类型
-│   └── styles/              # 样式文件
+│   └── hooks/               # 自定义Hooks
 ├── docs/                    # 项目文档
-│   ├── prd.md              # 产品需求文档
-│   ├──竞品分析.md          # 竞品调研报告
-│   └── 技术架构.md         # 技术架构文档
-├── public/                  # 静态资源
-└── prisma/                  # 数据库模型
+│   ├── PRD.md              # 产品需求文档
+│   ├── 技术架构.md         # 技术架构设计
+│   └── 竞品分析.md         # 竞品调研报告
+├── prisma/                  # 数据库模型
+│   └── schema.prisma       # Prisma Schema
+├── scripts/                 # 脚本
+│   └── setup.sh            # 项目启动脚本
+└── public/                  # 静态资源
 ```
-
-## 开发计划
-
-### Phase 1: MVP（4周）
-- [ ] 基础页面框架
-- [ ] 口腔拍照引导功能
-- [ ] AI分析流程（集成第三方API）
-- [ ] 简单健康报告
-
-### Phase 2: 功能完善（4周）
-- [ ] 用户系统
-- [ ] 健康档案
-- [ ] 历史记录追踪
-- [ ] 报告分享功能
-
-### Phase 3: 商业化（4周）
-- [ ] 医生对接平台
-- [ ] 付费报告
-- [ ] 健康提醒系统
 
 ## 快速开始
 
+### 1. 克隆项目
+
 ```bash
-# 安装依赖
+git clone <your-repo-url>
+cd oral-health-ai
+```
+
+### 2. 安装依赖
+
+```bash
 npm install
+```
 
-# 开发环境
+### 3. 配置环境变量
+
+```bash
+cp .env.example .env.local
+# 编辑 .env.local 填写你的API密钥
+```
+
+必需的环境变量：
+- `ANTHROPIC_API_KEY` - Claude API密钥（用于AI分析）
+- `DATABASE_URL` - PostgreSQL数据库连接字符串
+- `NEXTAUTH_SECRET` - NextAuth密钥（用于认证）
+
+### 4. 初始化数据库
+
+```bash
+npx prisma generate
+npx prisma db push
+```
+
+### 5. 启动开发服务器
+
+```bash
 npm run dev
+```
 
+访问 http://localhost:3000
+
+### 或使用启动脚本
+
+```bash
+./scripts/setup.sh
+```
+
+## 功能模块
+
+### ✅ 已实现
+
+- [x] 首页 Landing Page
+- [x] 口腔检测流程（拍照 → 分析 → 报告）
+- [x] 基础AI分析API（模拟数据）
+- [x] 历史记录页面
+- [x] 响应式设计
+
+### 🚧 开发中
+
+- [ ] 真实AI分析（集成Claude API）
+- [ ] 用户注册/登录
+- [ ] 数据库持久化
+- [ ] 文件上传存储
+- [ ] 健康趋势图表
+
+### 📋 计划中
+
+- [ ] 家庭账户支持
+- [ ] 医生对接平台
+- [ ] 付费会员系统
+- [ ] 微信小程序
+- [ ] APP开发
+
+## API文档
+
+### AI分析
+
+**POST** `/api/analyze`
+
+请求体：
+```json
+{
+  "imageBase64": "base64编码的图片",
+  "useRealAI": false  // 是否使用真实AI（需要API密钥）
+}
+```
+
+响应：
+```json
+{
+  "success": true,
+  "data": {
+    "overallScore": 78,
+    "issues": [
+      {
+        "type": "牙龈红肿",
+        "location": "左下磨牙区",
+        "severity": "轻微",
+        "confidence": 0.82
+      }
+    ],
+    "recommendations": ["建议1", "建议2"],
+    "notes": "整体状况良好"
+  }
+}
+```
+
+### 文件上传
+
+**POST** `/api/upload`
+
+Content-Type: `multipart/form-data`
+
+字段：`file` (图片文件)
+
+### 历史记录
+
+**GET** `/api/history?limit=10&offset=0`
+
+**DELETE** `/api/history?id=xxx`
+
+## 开发规范
+
+详见 [CLAUDE.md](./CLAUDE.md)
+
+## 部署
+
+### Vercel一键部署
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new)
+
+### 手动部署
+
+```bash
 # 构建
 npm run build
+
+# 部署到Vercel
+vercel --prod
 ```
+
+## 文档
+
+- [产品需求文档 (PRD)](./docs/PRD.md)
+- [技术架构文档](./docs/技术架构.md)
+- [竞品分析报告](./docs/竞品分析.md)
+
+## 竞品洞察
+
+**市场机会**：C端AI口腔健康市场基本空白，存在明确的机会窗口。
+
+**差异化优势**：
+1. C端可用性（现有产品都是B端工具）
+2. 价格亲民（基础功能免费）
+3. 本地化（针对亚洲人口腔特征优化）
+4. 全周期管理（从初筛到诊疗的闭环）
 
 ## 团队成员
 
@@ -85,3 +219,7 @@ npm run build
 ## 许可证
 
 MIT License
+
+## 免责声明
+
+本工具仅供参考，不能替代专业医生的诊断。如有严重不适，请及时就医。

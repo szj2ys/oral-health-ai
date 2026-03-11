@@ -1,0 +1,74 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 用户表
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  phone     String?  @unique
+  name      String?
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  scans     Scan[]
+  familyMembers FamilyMember[]
+
+  @@map("users")
+}
+
+// 家庭成员表
+model FamilyMember {
+  id        String @id @default(cuid())
+  userId    String
+  name      String
+  relation  String  // 关系：配偶、子女、父母
+  birthDate DateTime?
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scans  Scan[]
+
+  @@map("family_members")
+}
+
+// 检测记录表
+model Scan {
+  id             String    @id @default(cuid())
+  userId         String?
+  familyMemberId String?
+
+  // 原始图片
+  imageUrl       String
+  imageHash      String   // 用于去重
+
+  // 分析状态
+  status         ScanStatus @default(PENDING)
+
+  // 结果
+  overallScore   Int?
+  issues         Json?    // 问题列表
+  recommendations Json?   // 建议
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user           User?          @relation(fields: [userId], references: [id])
+  familyMember   FamilyMember?  @relation(fields: [familyMemberId], references: [id])
+
+  @@map("scans")
+}
+
+enum ScanStatus {
+  PENDING
+  UPLOADING
+  PREPROCESSING
+  ANALYZING
+  COMPLETED
+  FAILED
+}
