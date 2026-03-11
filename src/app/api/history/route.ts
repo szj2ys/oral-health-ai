@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// 标记为动态路由，支持静态导出
+export const dynamic = 'force-dynamic';
+
 // 模拟历史数据
 const mockHistory = [
   {

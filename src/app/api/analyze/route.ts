@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { analyzeOralImage } from '@/lib/ai';
 
+// 标记为动态路由，支持静态导出
+export const dynamic = 'force-dynamic';
+
 // 模拟AI分析结果（MVP阶段）
 const mockAnalysisResult = {
   overallScore: 76,
