@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { analyzeOralImage, generateMockAnalysis } from "@/lib/ai";
+import { prisma } from "@/lib/db";
 
 // 标记为动态路由，支持静态导出
 export const dynamic = "force-dynamic";
@@ -7,7 +8,7 @@ export const dynamic = "force-dynamic";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { imageBase64, useMock = false } = body;
+    const { imageBase64, useMock = false, deviceId } = body;
 
     if (!imageBase64) {
       return NextResponse.json(
@@ -30,6 +31,16 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // 创建检测记录（初始状态）
+    const scan = await prisma.scan.create({
+      data: {
+        deviceId: deviceId || null,
+        imageUrl: "data:image/jpeg;base64," + imageBase64.slice(0, 100) + "...", // 简化存储，实际应该上传到存储服务
+        imageHash: await generateImageHash(imageBase64),
+        status: "ANALYZING",
+      },
+    });
 
     let result;
     let usedRealAI = false;
@@ -56,13 +67,34 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // 更新检测记录
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const issues: any = result.issues;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const recommendations: any = result.recommendations;
+
+    await prisma.scan.update({
+      where: { id: scan.id },
+      data: {
+        status: "COMPLETED",
+        overallScore: result.overallScore,
+        issues,
+        recommendations,
+        notes: result.notes,
+      },
+    });
+
     return NextResponse.json({
       success: true,
-      data: result,
+      data: {
+        ...result,
+        scanId: scan.id,
+      },
       meta: {
         usedRealAI,
         fallback: !usedRealAI && !!process.env.ANTHROPIC_API_KEY,
         error: errorMessage,
+        scanId: scan.id,
       },
       message: usedRealAI ? "AI分析完成" : "分析完成（演示模式）",
     });
@@ -79,4 +111,19 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+/**
+ * 生成图片哈希（简单实现，用于去重）
+ */
+async function generateImageHash(base64: string): Promise<string> {
+  // 使用图片的前1000个字符作为简单哈希
+  // 实际生产环境应该使用更可靠的哈希算法
+  const data = base64.slice(0, 1000);
+  let hash = 0;
+  for (let i = 0; i < data.length; i++) {
+    const char = data.charCodeAt(i);
+    hash = ((hash << 5) - hash + char) | 0;
+  }
+  return hash.toString(16);
 }

@@ -1,68 +1,69 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/db";
 
 // 标记为动态路由，支持静态导出
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
-// 模拟历史数据
-const mockHistory = [
-  {
-    id: 'scan-001',
-    date: '2024-03-10',
-    score: 78,
-    status: '良好',
-    issues: 2,
-    thumbnail: '/mock/oral-1.jpg',
-  },
-  {
-    id: 'scan-002',
-    date: '2024-02-15',
-    score: 72,
-    status: '一般',
-    issues: 3,
-    thumbnail: '/mock/oral-2.jpg',
-  },
-  {
-    id: 'scan-003',
-    date: '2024-01-20',
-    score: 68,
-    status: '需关注',
-    issues: 4,
-    thumbnail: '/mock/oral-3.jpg',
-  },
-];
+// 获取健康状态描述
+function getHealthStatus(score: number | null): string {
+  if (score === null) return "待分析";
+  if (score >= 80) return "良好";
+  if (score >= 70) return "一般";
+  if (score >= 60) return "需关注";
+  return "建议就医";
+}
 
 // 获取历史记录列表
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const limit = parseInt(searchParams.get('limit') || '10');
-    const offset = parseInt(searchParams.get('offset') || '0');
+    const limit = parseInt(searchParams.get("limit") || "10");
+    const offset = parseInt(searchParams.get("offset") || "0");
+    const deviceId = searchParams.get("deviceId");
 
-    // TODO: 从数据库获取真实数据
-    // const history = await prisma.scan.findMany({
-    //   where: { userId: session.user.id },
-    //   orderBy: { createdAt: 'desc' },
-    //   take: limit,
-    //   skip: offset,
-    // });
+    // 查询条件
+    const where = deviceId ? { deviceId } : {};
+
+    // 从数据库获取真实数据
+    const [scans, total] = await Promise.all([
+      prisma.scan.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        take: limit,
+        skip: offset,
+      }),
+      prisma.scan.count({ where }),
+    ]);
+
+    // 格式化响应数据
+    const items = scans.map((scan) => ({
+      id: scan.id,
+      date: scan.createdAt.toISOString().split("T")[0],
+      score: scan.overallScore ?? 0,
+      status: getHealthStatus(scan.overallScore),
+      issues: Array.isArray(scan.issues) ? scan.issues.length : 0,
+      thumbnail: scan.imageUrl.startsWith("data:")
+        ? scan.imageUrl.slice(0, 100)
+        : scan.imageUrl,
+    }));
 
     return NextResponse.json({
       success: true,
       data: {
-        items: mockHistory.slice(offset, offset + limit),
-        total: mockHistory.length,
-        hasMore: offset + limit < mockHistory.length,
+        items,
+        total,
+        hasMore: offset + limit < total,
       },
-      message: '获取成功',
+      message: "获取成功",
     });
   } catch (error) {
-    console.error('获取历史记录错误:', error);
+    console.error("获取历史记录错误:", error);
     return NextResponse.json(
       {
         success: false,
         error: {
-          code: 'FETCH_ERROR',
-          message: '获取历史记录失败',
+          code: "FETCH_ERROR",
+          message: "获取历史记录失败",
         },
       },
       { status: 500 }
@@ -74,32 +75,62 @@ export async function GET(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
+    const id = searchParams.get("id");
+    const deviceId = searchParams.get("deviceId");
 
     if (!id) {
       return NextResponse.json(
-        { success: false, error: { code: 'MISSING_ID', message: '请提供记录ID' } },
+        {
+          success: false,
+          error: { code: "MISSING_ID", message: "请提供记录ID" },
+        },
         { status: 400 }
       );
     }
 
-    // TODO: 从数据库删除
-    // await prisma.scan.delete({
-    //   where: { id },
-    // });
+    // 先检查记录是否存在且属于当前设备
+    const scan = await prisma.scan.findUnique({
+      where: { id },
+    });
+
+    if (!scan) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: { code: "NOT_FOUND", message: "记录不存在" },
+        },
+        { status: 404 }
+      );
+    }
+
+    // 如果提供了deviceId，检查是否匹配（简单的权限控制）
+    if (deviceId && scan.deviceId !== deviceId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: { code: "FORBIDDEN", message: "无权删除此记录" },
+        },
+        { status: 403 }
+      );
+    }
+
+    // 删除记录
+    await prisma.scan.delete({
+      where: { id },
+    });
 
     return NextResponse.json({
       success: true,
-      message: '删除成功',
+      message: "删除成功",
     });
   } catch (error) {
-    console.error('删除历史记录错误:', error);
+    console.error("删除历史记录错误:", error);
     return NextResponse.json(
       {
         success: false,
         error: {
-          code: 'DELETE_ERROR',
-          message: '删除失败',
+          code: "DELETE_ERROR",
+          message: "删除失败",
         },
       },
       { status: 500 }
