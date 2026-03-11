@@ -42,6 +42,7 @@ model Scan {
   id             String    @id @default(cuid())
   userId         String?
   familyMemberId String?
+  deviceId       String?   // 设备标识（临时方案，无用户系统时使用）
 
   // 原始图片
   imageUrl       String
@@ -54,6 +55,7 @@ model Scan {
   overallScore   Int?
   issues         Json?    // 问题列表
   recommendations Json?   // 建议
+  notes          String?  // 备注
 
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
