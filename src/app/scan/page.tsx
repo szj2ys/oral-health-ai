@@ -4,10 +4,26 @@ import { useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import { Camera, ArrowLeft, RotateCcw, Check, AlertCircle } from "lucide-react";
 
+// 分析结果类型
+interface AnalysisIssue {
+  type: string;
+  location: string;
+  severity: "轻微" | "轻度" | "中度" | "重度";
+  confidence?: number;
+}
+
+interface AnalysisResult {
+  overallScore: number;
+  issues: AnalysisIssue[];
+  recommendations: string[];
+  notes?: string;
+}
+
 export default function ScanPage() {
-  const [step, setStep] = useState<"guide" | "camera" | "preview" | "analyzing" | "result">("guide");
+  const [step, setStep] = useState<"guide" | "camera" | "preview" | "analyzing" | "result" | "error">("guide");
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
-  const [analysisResult, setAnalysisResult] = useState<any>(null);
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -23,24 +39,41 @@ export default function ScanPage() {
   }, []);
 
   const handleAnalyze = useCallback(async () => {
+    if (!capturedImage) return;
+
     setStep("analyzing");
-    // TODO: 调用AI分析API
-    setTimeout(() => {
-      setAnalysisResult({
-        overallScore: 78,
-        issues: [
-          { type: "牙龈红肿", severity: "轻微", area: "左下磨牙区" },
-          { type: "牙菌斑", severity: "轻度", area: "门牙内侧" },
-        ],
-        recommendations: [
-          "建议加强牙龈清洁，使用软毛牙刷",
-          "每天使用牙线清洁牙缝",
-          "建议3个月内预约牙医检查",
-        ],
+    setErrorMessage("");
+
+    try {
+      // 提取base64数据（移除data:image前缀）
+      const base64Data = capturedImage.split(',')[1];
+
+      // 调用AI分析API
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          imageBase64: base64Data,
+          // useMock: true, // 开发测试时可设为true使用模拟数据
+        }),
       });
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error?.message || '分析失败');
+      }
+
+      setAnalysisResult(result.data);
       setStep("result");
-    }, 3000);
-  }, []);
+    } catch (error) {
+      console.error('分析错误:', error);
+      setErrorMessage(error instanceof Error ? error.message : '分析过程中出现错误');
+      setStep("error");
+    }
+  }, [capturedImage]);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -160,6 +193,21 @@ export default function ScanPage() {
           </div>
         )}
 
+        {step === "error" && (
+          <div className="space-y-6">
+            <div className="text-center">
+              <h2 className="text-xl font-bold text-red-600 mb-2">分析失败</h2>
+              <p className="text-slate-600">{errorMessage || "分析过程中出现错误，请重试"}</p>
+            </div>
+            <button
+              onClick={() => setStep("preview")}
+              className="w-full py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors"
+            >
+              返回重试
+            </button>
+          </div>
+        )}
+
         {step === "result" && analysisResult && (
           <div className="space-y-6">
             <div className="text-center">
@@ -171,41 +219,62 @@ export default function ScanPage() {
             <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 text-white text-center">
               <p className="text-blue-100 mb-2">口腔健康评分</p>
               <div className="text-5xl font-bold mb-2">{analysisResult.overallScore}</div>
-              <p className="text-blue-100">良好，仍有改善空间</p>
+              <p className="text-blue-100">{analysisResult.overallScore >= 80 ? "优秀" : analysisResult.overallScore >= 60 ? "良好" : "需改善"}</p>
             </div>
 
             {/* 发现问题 */}
-            <div className="bg-white rounded-2xl p-6 border border-slate-200">
-              <h3 className="font-semibold text-slate-900 mb-4">检测到的问题</h3>
-              <div className="space-y-3">
-                {analysisResult.issues.map((issue: any, index: number) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-amber-50 rounded-xl">
-                    <div>
-                      <p className="font-medium text-slate-900">{issue.type}</p>
-                      <p className="text-sm text-slate-600">{issue.area}</p>
+            {analysisResult.issues && analysisResult.issues.length > 0 ? (
+              <div className="bg-white rounded-2xl p-6 border border-slate-200">
+                <h3 className="font-semibold text-slate-900 mb-4">检测到的问题 ({analysisResult.issues.length}个)</h3>
+                <div className="space-y-3">
+                  {analysisResult.issues.map((issue, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-amber-50 rounded-xl">
+                      <div>
+                        <p className="font-medium text-slate-900">{issue.type}</p>
+                        <p className="text-sm text-slate-600">{issue.location}</p>
+                      </div>
+                      <span className={`px-3 py-1 text-xs rounded-full ${
+                        issue.severity === "轻微" ? "bg-green-200 text-green-800" :
+                        issue.severity === "轻度" ? "bg-blue-200 text-blue-800" :
+                        issue.severity === "中度" ? "bg-amber-200 text-amber-800" :
+                        "bg-red-200 text-red-800"
+                      }`}>
+                        {issue.severity}
+                      </span>
                     </div>
-                    <span className="px-3 py-1 bg-amber-200 text-amber-800 text-xs rounded-full">
-                      {issue.severity}
-                    </span>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="bg-green-50 rounded-2xl p-6 border border-green-200">
+                <h3 className="font-semibold text-green-800 mb-2">🎉 未发现明显问题</h3>
+                <p className="text-green-700">您的口腔健康状况良好，请继续保持！</p>
+              </div>
+            )}
+
+            {/* AI备注 */}
+            {analysisResult.notes && (
+              <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                <p className="text-sm text-slate-600 italic">{analysisResult.notes}</p>
+              </div>
+            )}
 
             {/* 建议 */}
-            <div className="bg-white rounded-2xl p-6 border border-slate-200">
-              <h3 className="font-semibold text-slate-900 mb-4">护理建议</h3>
-              <ul className="space-y-3">
-                {analysisResult.recommendations.map((rec: string, index: number) => (
-                  <li key={index} className="flex gap-3 text-slate-600">
-                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs font-medium">
-                      {index + 1}
-                    </span>
-                    {rec}
-                  </li>
-                ))}
-              </ul>
-            </div>
+            {analysisResult.recommendations && analysisResult.recommendations.length > 0 && (
+              <div className="bg-white rounded-2xl p-6 border border-slate-200">
+                <h3 className="font-semibold text-slate-900 mb-4">护理建议</h3>
+                <ul className="space-y-3">
+                  {analysisResult.recommendations.map((rec, index) => (
+                    <li key={index} className="flex gap-3 text-slate-600">
+                      <span className="flex-shrink-0 w-6 h-6 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs font-medium">
+                        {index + 1}
+                      </span>
+                      {rec}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             <div className="flex gap-3">
               <Link
