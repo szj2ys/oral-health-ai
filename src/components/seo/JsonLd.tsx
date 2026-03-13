@@ -145,6 +145,50 @@ export function SoftwareApplicationJsonLd() {
 }
 
 /**
+ * 文章结构化数据
+ */
+export function ArticleJsonLd({
+  title,
+  description,
+  url,
+  publishedAt,
+  modifiedAt,
+  author = "张二口腔AI",
+}: {
+  title: string;
+  description: string;
+  url: string;
+  publishedAt: string;
+  modifiedAt?: string;
+  author?: string;
+}) {
+  const data = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: title,
+    description: description,
+    url: `https://oral-health-ai.vercel.app${url}`,
+    datePublished: publishedAt,
+    dateModified: modifiedAt || publishedAt,
+    author: {
+      "@type": "Organization",
+      name: author,
+    },
+    publisher: {
+      "@type": "Organization",
+      name: "张二口腔AI",
+      logo: {
+        "@type": "ImageObject",
+        url: "https://oral-health-ai.vercel.app/icon-192x192.svg",
+      },
+    },
+    inLanguage: "zh-CN",
+  };
+
+  return <JsonLd data={data} />;
+}
+
+/**
  * 组织结构化数据
  */
 export function OrganizationJsonLd() {
