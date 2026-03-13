@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback } from "react";
 import Link from "next/link";
-import { Camera, ArrowLeft, RotateCcw, Check, AlertCircle } from "lucide-react";
+import { Camera, ArrowLeft, RotateCcw, Check, AlertCircle, Share2, Download } from "lucide-react";
 
 // 分析结果类型
 interface AnalysisIssue {
@@ -17,6 +17,7 @@ interface AnalysisResult {
   issues: AnalysisIssue[];
   recommendations: string[];
   notes?: string;
+  scanId?: string;
 }
 
 export default function ScanPage() {
@@ -24,6 +25,7 @@ export default function ScanPage() {
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string>("");
+  const [shareCopied, setShareCopied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -288,6 +290,7 @@ export default function ScanPage() {
                 onClick={() => {
                   setCapturedImage(null);
                   setAnalysisResult(null);
+                  setShareCopied(false);
                   setStep("guide");
                 }}
                 className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors"
@@ -295,6 +298,68 @@ export default function ScanPage() {
                 再次检测
               </button>
             </div>
+
+            {/* Share Section */}
+            {analysisResult.scanId && (
+              <div className="bg-white rounded-2xl p-6 border border-slate-200">
+                <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                  <Share2 className="w-5 h-5" />
+                  分享报告
+                </h3>
+                <div className="space-y-3">
+                  <button
+                    onClick={() => {
+                      const shareUrl = `${window.location.origin}/share/${analysisResult.scanId}`;
+                      navigator.clipboard.writeText(shareUrl);
+                      setShareCopied(true);
+                      setTimeout(() => setShareCopied(false), 2000);
+                    }}
+                    className="w-full py-3 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition-colors flex items-center justify-center gap-2"
+                  >
+                    {shareCopied ? (
+                      <>
+                        <Check className="w-4 h-4" />
+                        链接已复制
+                      </>
+                    ) : (
+                      <>
+                        <Share2 className="w-4 h-4" />
+                        复制分享链接
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => {
+                      // Generate and download report as text
+                      const report = `口腔健康检测报告
+检测日期: ${new Date().toLocaleDateString("zh-CN")}
+健康评分: ${analysisResult.overallScore}/100
+状态: ${analysisResult.overallScore >= 80 ? "优秀" : analysisResult.overallScore >= 60 ? "良好" : "需改善"}
+
+检测到的问题: ${analysisResult.issues.length}个
+${analysisResult.issues.map((issue, i) => `${i + 1}. ${issue.type} (${issue.severity}) - ${issue.location}`).join("\n")}
+
+护理建议:
+${analysisResult.recommendations.map((rec, i) => `${i + 1}. ${rec}`).join("\n")}
+
+免责声明: 本报告仅供参考，不能替代专业医生的诊断。
+生成工具: 张二口腔AI`;
+                      const blob = new Blob([report], { type: "text/plain;charset=utf-8" });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = `口腔健康报告_${new Date().toISOString().split("T")[0]}.txt`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                    className="w-full py-3 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Download className="w-4 h-4" />
+                    下载报告
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </main>
