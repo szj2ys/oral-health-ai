@@ -2,7 +2,18 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeft, Calendar, ChevronRight, Loader2 } from "lucide-react";
+import { ArrowLeft, Calendar, ChevronRight, Loader2, TrendingUp } from "lucide-react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Area,
+  AreaChart,
+} from "recharts";
 
 interface HistoryItem {
   id: string;
@@ -173,12 +184,65 @@ export default function HistoryPage() {
               </div>
             </div>
 
-            {/* Trend Chart Placeholder */}
+            {/* Trend Chart */}
             <div className="mt-8 bg-white rounded-2xl p-6 border border-slate-200">
-              <h2 className="font-semibold text-slate-900 mb-4">健康趋势</h2>
-              <div className="h-40 bg-slate-50 rounded-xl flex items-center justify-center">
-                <p className="text-slate-400">趋势图表即将推出</p>
+              <div className="flex items-center gap-2 mb-4">
+                <TrendingUp className="w-5 h-5 text-blue-600" />
+                <h2 className="font-semibold text-slate-900">健康趋势</h2>
               </div>
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart
+                    data={[...history.items].reverse().map((item, index) => ({
+                      ...item,
+                      index: index + 1,
+                      shortDate: item.date.slice(5), // MM-DD
+                    }))}
+                    margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                  >
+                    <defs>
+                      <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis
+                      dataKey="shortDate"
+                      tick={{ fontSize: 12, fill: '#64748b' }}
+                      tickLine={false}
+                      axisLine={{ stroke: '#e2e8f0' }}
+                    />
+                    <YAxis
+                      domain={[0, 100]}
+                      tick={{ fontSize: 12, fill: '#64748b' }}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#fff',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                      }}
+                      formatter={(value) => [`评分: ${value}`, '']}
+                      labelFormatter={(label) => `日期: ${label}`}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="score"
+                      stroke="#3b82f6"
+                      strokeWidth={2}
+                      fillOpacity={1}
+                      fill="url(#colorScore)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+              <p className="text-xs text-slate-400 text-center mt-2">
+                最近 {history.items.length} 次检测趋势
+              </p>
             </div>
           </>
         )}
