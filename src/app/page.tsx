@@ -164,9 +164,9 @@ export default function Home() {
             <span className="text-sm text-slate-600">张二口腔AI © 2024</span>
           </div>
           <div className="flex items-center gap-6">
+            <Link href="/faq" className="text-sm text-slate-500 hover:text-slate-700">常见问题</Link>
             <Link href="#" className="text-sm text-slate-500 hover:text-slate-700">隐私政策</Link>
             <Link href="#" className="text-sm text-slate-500 hover:text-slate-700">用户协议</Link>
-            <Link href="#" className="text-sm text-slate-500 hover:text-slate-700">联系我们</Link>
           </div>
         </div>
       </footer>
