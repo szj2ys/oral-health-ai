@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import { Camera, ArrowLeft, RotateCcw, Check, AlertCircle, Share2, Download } from "lucide-react";
+import ScanOnboarding from "@/components/ScanOnboarding";
 
 // 分析结果类型
 interface AnalysisIssue {
@@ -80,6 +81,9 @@ export default function ScanPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      {/* Onboarding for first-time users */}
+      <ScanOnboarding />
+
       {/* Header */}
       <header className="sticky top-0 z-50 backdrop-blur-lg bg-white/80 border-b border-slate-200">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
