@@ -1,16 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -86,9 +76,9 @@ export const metadata: Metadata = {
     // baidu: 'your-baidu-verification-code',
   },
   icons: {
-    icon: "/favicon.ico",
-    shortcut: "/favicon.ico",
-    apple: "/apple-touch-icon.png",
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+    apple: "/icon-192x192.svg",
   },
   manifest: "/manifest.json",
   category: "health",
@@ -101,10 +91,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-slate-50`}
-      >
+      <body className="antialiased bg-slate-50">
         {children}
+        <Analytics />
       </body>
     </html>
   );
