@@ -166,7 +166,7 @@ export default function Home() {
           <div className="flex items-center gap-6">
             <Link href="/guide" className="text-sm text-slate-500 hover:text-slate-700">健康指南</Link>
             <Link href="/faq" className="text-sm text-slate-500 hover:text-slate-700">常见问题</Link>
-            <Link href="#" className="text-sm text-slate-500 hover:text-slate-700">隐私政策</Link>
+            <Link href="/privacy/" className="text-sm text-slate-500 hover:text-slate-700">隐私政策</Link>
           </div>
         </div>
       </footer>

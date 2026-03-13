@@ -10,6 +10,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${baseUrl}/history/`, priority: 0.8, freq: "daily" },
     { url: `${baseUrl}/faq/`, priority: 0.7, freq: "monthly" },
     { url: `${baseUrl}/guide/`, priority: 0.8, freq: "weekly" },
+    { url: `${baseUrl}/privacy/`, priority: 0.5, freq: "yearly" },
   ];
 
   // SEO guide pages
