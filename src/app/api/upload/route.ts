@@ -1,11 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
+import { checkRateLimit, getClientIP, createRateLimitResponse } from "@/lib/rate-limit";
 
 // 标记为动态路由，支持静态导出
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting
+    const clientIP = getClientIP(request);
+    const { isLimited, remaining, resetTime } = checkRateLimit(`upload:${clientIP}`);
+
+    if (isLimited) {
+      return createRateLimitResponse(resetTime);
+    }
+
     const formData = await request.formData();
     const file = formData.get('file') as File;
 
