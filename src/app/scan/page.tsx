@@ -56,6 +56,7 @@ export default function ScanPage() {
         },
         body: JSON.stringify({
           imageBase64: base64Data,
+          deviceId: localStorage.getItem("deviceId") || Math.random().toString(36).substring(2, 15),
           // useMock: true, // 开发测试时可设为true使用模拟数据
         }),
       });

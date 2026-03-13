@@ -13,13 +13,56 @@ function getHealthStatus(score: number | null): string {
   return "建议就医";
 }
 
-// 获取历史记录列表
+// 获取历史记录列表或单个记录
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
     const limit = parseInt(searchParams.get("limit") || "10");
     const offset = parseInt(searchParams.get("offset") || "0");
     const deviceId = searchParams.get("deviceId");
+
+    // 如果提供了id，返回单个记录详情
+    if (id) {
+      const scan = await prisma.scan.findUnique({
+        where: { id },
+      });
+
+      if (!scan) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: { code: "NOT_FOUND", message: "记录不存在" },
+          },
+          { status: 404 }
+        );
+      }
+
+      // 简单的权限检查
+      if (deviceId && scan.deviceId !== deviceId) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: { code: "FORBIDDEN", message: "无权访问此记录" },
+          },
+          { status: 403 }
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          id: scan.id,
+          date: scan.createdAt.toISOString().split("T")[0],
+          overallScore: scan.overallScore ?? 0,
+          issues: scan.issues || [],
+          recommendations: scan.recommendations || [],
+          notes: scan.notes || "",
+          status: scan.status,
+        },
+        message: "获取成功",
+      });
+    }
 
     // 查询条件
     const where = deviceId ? { deviceId } : {};
