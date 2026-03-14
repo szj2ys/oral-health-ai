@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Analytics } from "@vercel/analytics/react";
+import Script from "next/script";
 import "./globals.css";
 
 export const viewport: Viewport = {
@@ -93,7 +93,11 @@ export default function RootLayout({
     <html lang="zh-CN">
       <body className="antialiased bg-slate-50">
         {children}
-        <Analytics />
+        <Script
+          src="https://va.vercel-analytics.com/v1/script.js"
+          strategy="lazyOnload"
+          data-website-id={process.env.NEXT_PUBLIC_VERCEL_ANALYTICS_ID}
+        />
       </body>
     </html>
   );

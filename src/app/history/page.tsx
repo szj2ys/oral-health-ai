@@ -1,20 +1,49 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { ArrowLeft, Calendar, ChevronRight, Loader2, TrendingUp } from "lucide-react";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Area,
-  AreaChart,
-} from "recharts";
 import { trackHistoryView } from "@/lib/analytics";
+
+// Dynamically import Recharts components to reduce initial bundle size
+const ResponsiveContainer = dynamic(
+  () => import("recharts").then((mod) => mod.ResponsiveContainer),
+  { ssr: false, loading: () => <ChartSkeleton /> }
+);
+const AreaChart = dynamic(
+  () => import("recharts").then((mod) => mod.AreaChart),
+  { ssr: false }
+);
+const Area = dynamic(
+  () => import("recharts").then((mod) => mod.Area),
+  { ssr: false }
+);
+const XAxis = dynamic(
+  () => import("recharts").then((mod) => mod.XAxis),
+  { ssr: false }
+);
+const YAxis = dynamic(
+  () => import("recharts").then((mod) => mod.YAxis),
+  { ssr: false }
+);
+const CartesianGrid = dynamic(
+  () => import("recharts").then((mod) => mod.CartesianGrid),
+  { ssr: false }
+);
+const Tooltip = dynamic(
+  () => import("recharts").then((mod) => mod.Tooltip),
+  { ssr: false }
+);
+
+// Skeleton loader for chart
+function ChartSkeleton() {
+  return (
+    <div className="h-full w-full animate-pulse bg-slate-100 rounded-lg flex items-center justify-center">
+      <Loader2 className="w-8 h-8 text-slate-300 animate-spin" />
+    </div>
+  );
+}
 
 interface HistoryItem {
   id: string;

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Camera, ArrowLeft, RotateCcw, Check, AlertCircle, Share2, Download } from "lucide-react";
 import ScanOnboarding from "@/components/ScanOnboarding";
 import DentistCTA from "@/components/scan/DentistCTA";
@@ -180,8 +181,15 @@ export default function ScanPage() {
               <p className="text-slate-600">确认照片清晰后，开始AI分析</p>
             </div>
 
-            <div className="rounded-2xl overflow-hidden border border-slate-200">
-              <img src={capturedImage} alt="口腔照片" className="w-full" />
+            <div className="rounded-2xl overflow-hidden border border-slate-200 relative aspect-[4/3]">
+              <Image
+                src={capturedImage}
+                alt="口腔照片"
+                fill
+                className="object-contain"
+                sizes="(max-width: 768px) 100vw, 600px"
+                priority
+              />
             </div>
 
             <div className="flex gap-3">
