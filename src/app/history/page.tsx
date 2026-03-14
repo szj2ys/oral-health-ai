@@ -77,9 +77,14 @@ export default function HistoryPage() {
 
   useEffect(() => {
     fetchHistory();
-    // Track history view
-    trackHistoryView(history?.total || 0);
   }, []);
+
+  // Track history view in separate effect after data is loaded
+  useEffect(() => {
+    if (history) {
+      trackHistoryView(history.total);
+    }
+  }, [history]);
 
   async function fetchHistory() {
     try {

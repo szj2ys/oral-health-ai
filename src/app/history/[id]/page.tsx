@@ -39,7 +39,12 @@ export default function HistoryDetailPage() {
   useEffect(() => {
     if (id) {
       fetchScanDetail();
-      // Track detail view
+    }
+  }, [id]);
+
+  // Track detail view in separate effect
+  useEffect(() => {
+    if (id) {
       trackHistoryDetailView(id);
     }
   }, [id]);

@@ -4,12 +4,15 @@ import { prisma } from "@/lib/db";
 import { checkRateLimit, getClientIP, createRateLimitResponse } from "@/lib/rate-limit";
 import { uploadImage, generateScanFilename } from "@/lib/blob";
 
-// 标记为动态路由，支持静态导出
-export const dynamic = "force-dynamic";
+// Cache control headers for API responses
+const CACHE_CONTROL = 'public, max-age=0, must-revalidate';
 
 export async function POST(request: NextRequest) {
+  // Start timing for performance monitoring
+  const startTime = Date.now();
+
   try {
-    // Rate limiting
+    // Rate limiting - early return for limited clients
     const clientIP = getClientIP(request);
     const { isLimited, resetTime } = checkRateLimit(`analyze:${clientIP}`);
 
@@ -26,7 +29,7 @@ export async function POST(request: NextRequest) {
           success: false,
           error: { code: "MISSING_IMAGE", message: "请上传口腔照片" },
         },
-        { status: 400 }
+        { status: 400, headers: { 'Cache-Control': CACHE_CONTROL } }
       );
     }
 
@@ -38,7 +41,7 @@ export async function POST(request: NextRequest) {
           success: false,
           error: { code: "IMAGE_TOO_LARGE", message: "图片大小不能超过10MB" },
         },
-        { status: 400 }
+        { status: 400, headers: { 'Cache-Control': CACHE_CONTROL } }
       );
     }
 
@@ -54,7 +57,7 @@ export async function POST(request: NextRequest) {
           success: false,
           error: { code: "UPLOAD_ERROR", message: "图片上传失败，请重试" },
         },
-        { status: 500 }
+        { status: 500, headers: { 'Cache-Control': CACHE_CONTROL } }
       );
     }
 
@@ -110,6 +113,9 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Calculate processing time
+    const processingTime = Date.now() - startTime;
+
     return NextResponse.json({
       success: true,
       data: {
@@ -121,8 +127,14 @@ export async function POST(request: NextRequest) {
         fallback: !usedRealAI && !!process.env.ANTHROPIC_API_KEY,
         error: errorMessage,
         scanId: scan.id,
+        processingTime,
       },
       message: usedRealAI ? "AI分析完成" : "分析完成（演示模式）",
+    }, {
+      headers: {
+        'Cache-Control': CACHE_CONTROL,
+        'X-Processing-Time': String(processingTime),
+      },
     });
   } catch (error) {
     console.error("AI分析错误:", error);
@@ -134,7 +146,7 @@ export async function POST(request: NextRequest) {
           message: "分析过程中出现错误，请重试",
         },
       },
-      { status: 500 }
+      { status: 500, headers: { 'Cache-Control': CACHE_CONTROL } }
     );
   }
 }

@@ -75,3 +75,28 @@ enum ScanStatus {
   COMPLETED
   FAILED
 }
+
+// 挑战模型 - 用于好友PK功能
+model Challenge {
+  id            String          @id @default(cuid())
+  creatorScanId String
+  creatorName   String
+  creatorScore  Int
+  friendName    String?
+  friendScanId  String?
+  friendScore   Int?
+  status        ChallengeStatus @default(PENDING)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  expiresAt     DateTime?
+
+  @@map("challenges")
+}
+
+enum ChallengeStatus {
+  PENDING     // 等待接受
+  ACCEPTED    // 已接受，等待完成
+  COMPLETED   // 双方完成，可查看结果
+  EXPIRED     // 已过期
+  CANCELLED   // 已取消
+}
