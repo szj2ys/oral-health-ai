@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { MapPin, Phone, Navigation, ExternalLink } from "lucide-react";
+import { trackDentistCTA } from "@/lib/analytics";
 
 interface Clinic {
   name: string;
@@ -149,7 +150,11 @@ export default function DentistCTA({ severity, issuesCount }: DentistCTAProps) {
       {/* Action Button */}
       {!showClinics ? (
         <button
-          onClick={() => setShowClinics(true)}
+          onClick={() => {
+            setShowClinics(true);
+            // Track CTA click
+            trackDentistCTA(severity, issuesCount);
+          }}
           className={`w-full py-3 ${urgency.buttonColor} text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2`}
         >
           <Navigation className="w-4 h-4" />

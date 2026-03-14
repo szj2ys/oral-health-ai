@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ArrowLeft, Calendar, Loader2, AlertCircle } from "lucide-react";
+import { trackHistoryDetailView } from "@/lib/analytics";
 
 interface AnalysisIssue {
   type: string;
@@ -33,6 +34,8 @@ export default function HistoryDetailPage() {
   useEffect(() => {
     if (id) {
       fetchScanDetail();
+      // Track detail view
+      trackHistoryDetailView(id);
     }
   }, [id]);
 
