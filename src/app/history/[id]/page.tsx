@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Calendar, Loader2, AlertCircle, Trash2, ImageIcon } from "lucide-react";
 import { trackHistoryDetailView } from "@/lib/analytics";
@@ -156,11 +157,13 @@ export default function HistoryDetailPage() {
                   <ImageIcon className="w-4 h-4" />
                   检测照片
                 </h3>
-                <div className="rounded-xl overflow-hidden bg-slate-100">
-                  <img
+                <div className="rounded-xl overflow-hidden bg-slate-100 relative aspect-[4/3]">
+                  <Image
                     src={scan.imageUrl}
                     alt="口腔检测照片"
-                    className="w-full h-auto max-h-80 object-contain"
+                    fill
+                    className="object-contain"
+                    sizes="(max-width: 768px) 100vw, 600px"
                   />
                 </div>
               </div>

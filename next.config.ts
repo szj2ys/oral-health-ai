@@ -4,7 +4,14 @@ import { withSentryConfig } from "@sentry/nextjs";
 const nextConfig: NextConfig = {
   // 服务器端渲染模式（支持API路由）
   images: {
-    unoptimized: true,
+    // Vercel Image Optimization enabled for better performance
+    unoptimized: false,
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "*.vercel.app",
+      },
+    ],
   },
   trailingSlash: true,
 };
