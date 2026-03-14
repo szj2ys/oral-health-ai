@@ -10,7 +10,8 @@ datasource db {
 // 用户表
 model User {
   id        String   @id @default(cuid())
-  email     String   @unique
+  email     String?  @unique  // 邮箱（可选，用于注册用户）
+  deviceId  String?  @unique  // 设备标识（可选，用于匿名用户）
   phone     String?  @unique
   name      String?
   avatar    String?
