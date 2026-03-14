@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowLeft, RotateCcw, Check, AlertCircle, Share2, Download } from "lucide-react";
@@ -11,6 +11,7 @@ import CameraPermission from "@/components/scan/CameraPermission";
 import CameraView from "@/components/scan/CameraView";
 import CameraOverlay from "@/components/scan/CameraOverlay";
 import AnalysisLoading from "@/components/scan/AnalysisLoading";
+import EmailCapture from "@/components/EmailCapture";
 import {
   trackScanUpload,
   trackScanComplete,
@@ -20,8 +21,8 @@ import {
   trackAnalysisStart,
   trackAnalysisComplete,
   trackReportView,
+  trackEvent,
 } from "@/lib/analytics";
-import { useEffect } from "react";
 
 // 分析结果类型
 interface AnalysisIssue {
@@ -45,6 +46,8 @@ export default function ScanPage() {
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [shareCopied, setShareCopied] = useState(false);
+  const [emailCaptured, setEmailCaptured] = useState(false);
+  const [showEmailCapture, setShowEmailCapture] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const analysisStartTime = useRef<number>(0);
 
@@ -66,6 +69,21 @@ export default function ScanPage() {
       trackReportView(analysisResult.scanId);
     }
   }, [step, analysisResult]);
+
+  // Check if user has already provided email when showing results
+  useEffect(() => {
+    if (step === "result" && analysisResult?.scanId) {
+      // Check localStorage for email
+      const hasEmail = localStorage.getItem("userEmail");
+      if (!hasEmail && !emailCaptured) {
+        setShowEmailCapture(true);
+        // Track email capture view
+        trackEvent("email_capture_view", {
+          scan_id: analysisResult.scanId.slice(0, 8),
+        });
+      }
+    }
+  }, [step, analysisResult, emailCaptured]);
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -375,6 +393,20 @@ export default function ScanPage() {
               <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
                 <p className="text-sm text-slate-600 italic">{analysisResult.notes}</p>
               </div>
+            )}
+
+            {/* 邮箱收集 - 用户未提供邮箱时显示 */}
+            {showEmailCapture && analysisResult.scanId && (
+              <EmailCapture
+                scanId={analysisResult.scanId}
+                onSkip={() => setShowEmailCapture(false)}
+                onComplete={() => {
+                  setEmailCaptured(true);
+                  setShowEmailCapture(false);
+                  // Save email to localStorage for future checks
+                  localStorage.setItem("emailCaptured", "true");
+                }}
+              />
             )}
 
             {/* 建议 - 高级内容，分享后解锁 */}

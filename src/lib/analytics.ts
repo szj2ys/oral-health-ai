@@ -15,6 +15,11 @@ export type AnalyticsEvent =
   | "scan_analysis_complete"
   | "scan_report_view"
   | "scan_dropoff"
+  // Email capture events
+  | "email_capture_view"
+  | "email_capture_complete"
+  | "email_capture_skip"
+  | "email_capture_error"
   // Legacy events
   | "scan_upload"
   | "scan_analyze"
