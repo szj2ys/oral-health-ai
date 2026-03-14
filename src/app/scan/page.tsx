@@ -3,10 +3,14 @@
 import { useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Camera, ArrowLeft, RotateCcw, Check, AlertCircle, Share2, Download } from "lucide-react";
+import { ArrowLeft, RotateCcw, Check, AlertCircle, Share2, Download } from "lucide-react";
 import ScanOnboarding from "@/components/ScanOnboarding";
 import DentistCTA from "@/components/scan/DentistCTA";
 import ShareGate from "@/components/scan/ShareGate";
+import CameraPermission from "@/components/scan/CameraPermission";
+import CameraView from "@/components/scan/CameraView";
+import CameraOverlay from "@/components/scan/CameraOverlay";
+import AnalysisLoading from "@/components/scan/AnalysisLoading";
 import {
   trackScanUpload,
   trackScanComplete,
@@ -36,7 +40,7 @@ interface AnalysisResult {
 }
 
 export default function ScanPage() {
-  const [step, setStep] = useState<"guide" | "camera" | "preview" | "analyzing" | "result" | "error">("guide");
+  const [step, setStep] = useState<"guide" | "camera-permission" | "camera" | "preview" | "analyzing" | "result" | "error">("guide");
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string>("");
@@ -172,36 +176,78 @@ export default function ScanPage() {
             </div>
 
             <button
-              onClick={() => setStep("camera")}
+              onClick={() => setStep("camera-permission")}
               className="w-full py-4 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
             >
-              <Camera className="w-5 h-5" />
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
               开始拍摄
             </button>
           </div>
         )}
 
+        {step === "camera-permission" && (
+          <div className="space-y-6">
+            <CameraPermission
+              onPermissionGranted={() => setStep("camera")}
+              onPermissionDenied={() => {
+                // Fall back to file upload on denied
+                setStep("camera");
+              }}
+              onSkipToUpload={() => {
+                trackScanUpload(0, "skipped_to_upload");
+                setStep("camera");
+              }}
+            />
+          </div>
+        )}
+
         {step === "camera" && (
           <div className="space-y-6">
-            <div className="text-center">
-              <h2 className="text-xl font-bold text-slate-900 mb-2">上传口腔照片</h2>
-              <p className="text-slate-600">请选择或拍摄清晰的口腔照片</p>
+            <div className="relative">
+              <CameraView
+                onCapture={(imageData) => {
+                  trackPhotoCaptured("camera");
+                  setCapturedImage(imageData);
+                  setStep("preview");
+                }}
+                onError={(message) => {
+                  setErrorMessage(message);
+                  trackScanError("CAMERA_ERROR", message);
+                  // Fall back to file upload
+                }}
+              />
+              <CameraOverlay
+                isActive={true}
+                onAlignmentComplete={(isAligned) => {
+                  // Could use this to enable/disable capture button
+                }}
+              />
             </div>
 
-            <div
-              onClick={() => fileInputRef.current?.click()}
-              className="aspect-[4/3] bg-white rounded-2xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-colors"
-            >
-              <Camera className="w-12 h-12 text-slate-400 mb-4" />
-              <p className="text-slate-600 font-medium">点击选择照片</p>
-              <p className="text-sm text-slate-400 mt-1">支持 JPG、PNG 格式</p>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleFileSelect}
-                className="hidden"
-              />
+            {/* File upload fallback */}
+            <div className="text-center">
+              <p className="text-sm text-slate-500 mb-3">或者从相册选择</p>
+              <div className="flex items-center justify-center gap-4">
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="py-3 px-6 bg-white text-slate-700 border border-slate-200 rounded-xl font-medium hover:bg-slate-50 transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  选择照片
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+              </div>
             </div>
           </div>
         )}
@@ -228,7 +274,7 @@ export default function ScanPage() {
               <button
                 onClick={() => {
                   setCapturedImage(null);
-                  setStep("camera");
+                  setStep("camera-permission");
                 }}
                 className="flex-1 py-3 bg-white text-slate-700 border border-slate-200 rounded-xl font-medium hover:bg-slate-50 transition-colors flex items-center justify-center gap-2"
               >
@@ -247,11 +293,12 @@ export default function ScanPage() {
         )}
 
         {step === "analyzing" && (
-          <div className="flex flex-col items-center justify-center py-20">
-            <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-6" />
-            <h2 className="text-xl font-bold text-slate-900 mb-2">AI分析中...</h2>
-            <p className="text-slate-600">正在识别口腔健康状况，请稍候</p>
-          </div>
+          <AnalysisLoading
+            duration={15000}
+            onComplete={() => {
+              // Analysis complete is handled by handleAnalyze function
+            }}
+          />
         )}
 
         {step === "error" && (
