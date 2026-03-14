@@ -20,6 +20,14 @@ export type AnalyticsEvent =
   | "email_capture_complete"
   | "email_capture_skip"
   | "email_capture_error"
+  // Challenge events
+  | "challenge_create"
+  | "challenge_create_error"
+  | "challenge_share"
+  | "challenge_accept"
+  | "challenge_accept_error"
+  | "challenge_complete"
+  | "challenge_view"
   // Legacy events
   | "scan_upload"
   | "scan_analyze"
@@ -323,4 +331,83 @@ declare global {
       params?: EventParams
     ) => void;
   }
+}
+
+// ==================== Challenge Events ====================
+
+/**
+ * Track challenge creation
+ */
+export function trackChallengeCreate(creatorScore: number) {
+  trackEvent("challenge_create", {
+    creator_score: creatorScore,
+    timestamp: Date.now(),
+  });
+}
+
+/**
+ * Track challenge creation error
+ */
+export function trackChallengeCreateError(errorCode: string, errorMessage: string) {
+  trackEvent("challenge_create_error", {
+    error_code: errorCode,
+    error_message: errorMessage.slice(0, 100),
+  });
+}
+
+/**
+ * Track challenge share
+ */
+export function trackChallengeShare(challengeId: string, method: string) {
+  trackEvent("challenge_share", {
+    challenge_id: challengeId.slice(0, 8),
+    method,
+  });
+}
+
+/**
+ * Track challenge accept
+ */
+export function trackChallengeAccept(challengeId: string) {
+  trackEvent("challenge_accept", {
+    challenge_id: challengeId.slice(0, 8),
+  });
+}
+
+/**
+ * Track challenge accept error
+ */
+export function trackChallengeAcceptError(errorCode: string, errorMessage: string) {
+  trackEvent("challenge_accept_error", {
+    error_code: errorCode,
+    error_message: errorMessage.slice(0, 100),
+  });
+}
+
+/**
+ * Track challenge completion (both participants finished)
+ */
+export function trackChallengeComplete(
+  challengeId: string,
+  creatorScore: number,
+  friendScore: number,
+  winner: "creator" | "friend" | "tie"
+) {
+  trackEvent("challenge_complete", {
+    challenge_id: challengeId.slice(0, 8),
+    creator_score: creatorScore,
+    friend_score: friendScore,
+    winner,
+    score_diff: Math.abs(creatorScore - friendScore),
+  });
+}
+
+/**
+ * Track challenge view
+ */
+export function trackChallengeView(challengeId: string, status: string) {
+  trackEvent("challenge_view", {
+    challenge_id: challengeId.slice(0, 8),
+    status,
+  });
 }

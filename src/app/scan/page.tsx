@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect, useTransition } from "react";
+import { useState, useRef, useCallback, useEffect, useTransition, useMemo } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, RotateCcw, Check, AlertCircle, Share2, Download } from "lucide-react";
+import { ArrowLeft, RotateCcw, Check, AlertCircle, Share2, Download, Trophy } from "lucide-react";
 import ScanOnboarding from "@/components/ScanOnboarding";
 import DentistCTA from "@/components/scan/DentistCTA";
 import ShareGate from "@/components/scan/ShareGate";
@@ -12,6 +13,8 @@ import CameraView from "@/components/scan/CameraView";
 import CameraOverlay from "@/components/scan/CameraOverlay";
 import AnalysisLoading from "@/components/scan/AnalysisLoading";
 import EmailCapture from "@/components/EmailCapture";
+import ChallengeCreator from "@/components/challenge/ChallengeCreator";
+import ChallengeShareCard from "@/components/challenge/ChallengeShareCard";
 import {
   trackScanUpload,
   trackScanComplete,
@@ -22,6 +25,7 @@ import {
   trackAnalysisComplete,
   trackReportView,
   trackEvent,
+  trackChallengeComplete,
 } from "@/lib/analytics";
 
 // 分析结果类型
@@ -53,10 +57,26 @@ export default function ScanPage() {
   // useTransition for non-urgent UI updates
   const [, startTransition] = useTransition();
 
+  // Router for navigation
+  const router = useRouter();
+
+  // Challenge mode state
+  const searchParams = useSearchParams();
+  const challengeId = searchParams.get("challenge");
+  const [challengeMode, setChallengeMode] = useState<"none" | "accepting" | "creating" | "sharing">("none");
+  const [createdChallengeId, setCreatedChallengeId] = useState<string | null>(null);
+
   // Track scan enter on mount
   useEffect(() => {
     trackScanEnter();
   }, []);
+
+  // Detect challenge mode from URL
+  useEffect(() => {
+    if (challengeId) {
+      setChallengeMode("accepting");
+    }
+  }, [challengeId]);
 
   // Track step changes for funnel analysis
   useEffect(() => {
@@ -143,6 +163,36 @@ export default function ScanPage() {
 
       setAnalysisResult(result.data);
       setStep("result");
+
+      // If accepting a challenge, complete it with the score
+      if (challengeId && challengeMode === "accepting") {
+        try {
+          const friendName = localStorage.getItem("userName") || "好友";
+          const friendScanId = result.data.scanId;
+
+          // Complete the challenge with the friend's scan
+          if (friendScanId) {
+            const completeResponse = await fetch(`/api/challenge/${challengeId}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                action: "complete",
+                friendScanId,
+                friendScore: result.data.overallScore,
+                friendName,
+              }),
+            });
+
+            if (completeResponse.ok) {
+              trackChallengeComplete(challengeId, result.data.overallScore);
+              // Redirect to result page
+              router.push(`/challenge/${challengeId}/result`);
+            }
+          }
+        } catch (challengeError) {
+          console.error('完成挑战失败:', challengeError);
+        }
+      }
     } catch (error) {
       console.error('分析错误:', error);
       const message = error instanceof Error ? error.message : '分析过程中出现错误';
@@ -153,7 +203,7 @@ export default function ScanPage() {
 
       setStep("error");
     }
-  }, [capturedImage]);
+  }, [capturedImage, challengeId, challengeMode, router]);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -171,6 +221,21 @@ export default function ScanPage() {
           <div className="w-16" />
         </div>
       </header>
+
+      {/* Challenge Accepting Banner */}
+      {challengeMode === "accepting" && challengeId && (
+        <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white">
+          <div className="max-w-5xl mx-auto px-4 py-3">
+            <div className="flex items-center justify-center gap-2">
+              <Trophy className="w-5 h-5" />
+              <span className="font-medium">正在完成好友PK挑战</span>
+            </div>
+            <p className="text-center text-sm text-white/80 mt-1">
+              完成检测后将自动对比双方的口腔健康分数
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <main className="max-w-2xl mx-auto px-4 py-8">
@@ -521,6 +586,49 @@ ${analysisResult.recommendations.map((rec, i) => `${i + 1}. ${rec}`).join("\n")}
                   </button>
                 </div>
               </div>
+            )}
+
+            {/* Challenge Section */}
+            {analysisResult.scanId && challengeMode !== "accepting" && (
+              <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-6 border border-amber-200">
+                <h3 className="font-semibold text-slate-900 mb-2 flex items-center gap-2">
+                  <Trophy className="w-5 h-5 text-amber-600" />
+                  好友PK挑战
+                </h3>
+                <p className="text-sm text-slate-600 mb-4">
+                  邀请好友也来检测口腔健康，看看谁的分数更高！
+                </p>
+                <button
+                  onClick={() => setChallengeMode("creating")}
+                  className="w-full py-3 bg-amber-600 text-white rounded-xl font-medium hover:bg-amber-700 transition-colors flex items-center justify-center gap-2"
+                >
+                  <Trophy className="w-4 h-4" />
+                  发起挑战
+                </button>
+              </div>
+            )}
+
+            {/* Challenge Creator Modal */}
+            {challengeMode === "creating" && analysisResult && (
+              <ChallengeCreator
+                scanId={analysisResult.scanId!}
+                creatorScore={analysisResult.overallScore}
+                onChallengeCreated={(challengeId) => {
+                  setCreatedChallengeId(challengeId);
+                  setChallengeMode("sharing");
+                }}
+                onCancel={() => setChallengeMode("none")}
+              />
+            )}
+
+            {/* Challenge Share Card Modal */}
+            {challengeMode === "sharing" && createdChallengeId && analysisResult && (
+              <ChallengeShareCard
+                challengeId={createdChallengeId}
+                creatorName={localStorage.getItem("userName") || "我"}
+                creatorScore={analysisResult.overallScore}
+                onClose={() => setChallengeMode("none")}
+              />
             )}
           </div>
         )}
