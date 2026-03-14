@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useTransition } from "react";
 import { Camera, SwitchCamera, Zap, ZapOff } from "lucide-react";
 import { trackPhotoCaptured } from "@/lib/analytics";
 
@@ -20,6 +20,8 @@ export default function CameraView({ onCapture, onError }: CameraViewProps) {
   const [flashMode, setFlashMode] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [isCapturing, setIsCapturing] = useState(false);
+  // useTransition for non-urgent UI updates to improve INP
+  const [, startTransition] = useTransition();
 
   // Touch handling for pinch zoom
   const touchDistanceRef = useRef<number | null>(null);
@@ -88,15 +90,24 @@ export default function CameraView({ onCapture, onError }: CameraViewProps) {
       );
       const scale = distance / touchDistanceRef.current;
       const newZoom = Math.min(Math.max(lastZoomRef.current * scale, 1), 3);
-      setZoom(newZoom);
+      // Use transition for zoom updates to prevent blocking interactions
+      startTransition(() => {
+        setZoom(newZoom);
+      });
     }
-  }, []);
+  }, [startTransition]);
 
   const handleTouchEnd = useCallback(() => {
     touchDistanceRef.current = null;
   }, []);
 
-  // Toggle flash (if supported)
+  // Switch camera with INP optimization
+  const switchCamera = useCallback(() => {
+    // Immediate state update for responsive feedback
+    setFacingMode(prev => prev === "user" ? "environment" : "user");
+  }, []);
+
+  // Toggle flash with INP optimization (if supported)
   const toggleFlash = useCallback(async () => {
     if (!streamRef.current) return;
 
@@ -109,65 +120,73 @@ export default function CameraView({ onCapture, onError }: CameraViewProps) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const constraints: any = { advanced: [{ torch: !flashMode }] };
         await videoTrack.applyConstraints(constraints);
-        setFlashMode(!flashMode);
+        // Use transition for non-critical state update
+        startTransition(() => {
+          setFlashMode(!flashMode);
+        });
       } catch {
         // Flash not supported
       }
     }
-  }, [flashMode]);
+  }, [flashMode, startTransition]);
 
-  // Switch camera
-  const switchCamera = useCallback(() => {
-    setFacingMode(prev => prev === "user" ? "environment" : "user");
-  }, []);
-
-  // Capture photo with haptic feedback
+  // Capture photo with haptic feedback - optimized for INP
   const capturePhoto = useCallback(async () => {
     if (!videoRef.current || !canvasRef.current || !isReady) return;
 
+    // Immediate UI feedback for better INP
     setIsCapturing(true);
 
-    // Haptic feedback
+    // Haptic feedback (non-blocking)
     if (navigator.vibrate) {
       navigator.vibrate(50);
     }
 
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
+    // Use requestAnimationFrame to ensure UI updates before processing
+    requestAnimationFrame(() => {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
 
-    // Set canvas size to match video
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+      if (!video || !canvas) return;
 
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+      // Set canvas size to match video
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
 
-    // Apply zoom by drawing scaled
-    if (zoom > 1) {
-      const scale = zoom;
-      const offsetX = (canvas.width - canvas.width / scale) / 2;
-      const offsetY = (canvas.height - canvas.height / scale) / 2;
-      ctx.drawImage(
-        video,
-        offsetX, offsetY, canvas.width / scale, canvas.height / scale,
-        0, 0, canvas.width, canvas.height
-      );
-    } else {
-      ctx.drawImage(video, 0, 0);
-    }
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
 
-    // Convert to data URL
-    const imageData = canvas.toDataURL("image/jpeg", 0.9);
+      // Apply zoom by drawing scaled
+      if (zoom > 1) {
+        const scale = zoom;
+        const offsetX = (canvas.width - canvas.width / scale) / 2;
+        const offsetY = (canvas.height - canvas.height / scale) / 2;
+        ctx.drawImage(
+          video,
+          offsetX, offsetY, canvas.width / scale, canvas.height / scale,
+          0, 0, canvas.width, canvas.height
+        );
+      } else {
+        ctx.drawImage(video, 0, 0);
+      }
 
-    // Stop camera stream
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-    }
+      // Convert to data URL
+      const imageData = canvas.toDataURL("image/jpeg", 0.9);
 
-    trackPhotoCaptured("camera");
-    onCapture(imageData);
+      // Stop camera stream in background
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
 
-    setTimeout(() => setIsCapturing(false), 300);
+      // Track and callback in next frame
+      requestAnimationFrame(() => {
+        trackPhotoCaptured("camera");
+        onCapture(imageData);
+
+        // Reset capturing state after a short delay
+        setTimeout(() => setIsCapturing(false), 300);
+      });
+    });
   }, [isReady, onCapture, zoom]);
 
   return (
@@ -180,14 +199,18 @@ export default function CameraView({ onCapture, onError }: CameraViewProps) {
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        {/* Video Preview */}
+        {/* Video Preview - Optimized for LCP with explicit dimensions */}
         <video
           ref={videoRef}
           autoPlay
           playsInline
           muted
-          className="absolute inset-0 w-full h-full object-cover transition-transform duration-100"
+          disablePictureInPicture
+          disableRemotePlayback
+          className="absolute inset-0 w-full h-full object-cover transition-transform duration-100 will-change-transform"
           style={{ transform: `scale(${zoom})` }}
+          width={1920}
+          height={1080}
         />
 
         {/* Hidden Canvas for capture */}
