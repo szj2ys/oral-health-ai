@@ -91,6 +91,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN">
+      <head>
+        {/* Preconnect to critical domains for faster resource loading */}
+        <link rel="preconnect" href="https://va.vercel-analytics.com" />
+        <link rel="dns-prefetch" href="https://va.vercel-analytics.com" />
+      </head>
       <body className="antialiased bg-slate-50">
         {children}
         <Script

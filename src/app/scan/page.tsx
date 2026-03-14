@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useTransition } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowLeft, RotateCcw, Check, AlertCircle, Share2, Download } from "lucide-react";
@@ -50,6 +50,8 @@ export default function ScanPage() {
   const [showEmailCapture, setShowEmailCapture] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const analysisStartTime = useRef<number>(0);
+  // useTransition for non-urgent UI updates
+  const [, startTransition] = useTransition();
 
   // Track scan enter on mount
   useEffect(() => {
@@ -70,20 +72,25 @@ export default function ScanPage() {
     }
   }, [step, analysisResult]);
 
-  // Check if user has already provided email when showing results
+  // Check if user has already provided email when showing results - INP optimized
   useEffect(() => {
     if (step === "result" && analysisResult?.scanId) {
-      // Check localStorage for email
-      const hasEmail = localStorage.getItem("userEmail");
-      if (!hasEmail && !emailCaptured) {
-        setShowEmailCapture(true);
-        // Track email capture view
-        trackEvent("email_capture_view", {
-          scan_id: analysisResult.scanId.slice(0, 8),
-        });
-      }
+      // Store scanId before transition
+      const scanId = analysisResult.scanId;
+      // Use transition for non-critical state update
+      startTransition(() => {
+        // Check localStorage for email
+        const hasEmail = localStorage.getItem("userEmail");
+        if (!hasEmail && !emailCaptured) {
+          setShowEmailCapture(true);
+          // Track email capture view
+          trackEvent("email_capture_view", {
+            scan_id: scanId.slice(0, 8),
+          });
+        }
+      });
     }
-  }, [step, analysisResult, emailCaptured]);
+  }, [step, analysisResult, emailCaptured, startTransition]);
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

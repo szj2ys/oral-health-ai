@@ -2,12 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
 import { checkRateLimit, getClientIP, createRateLimitResponse } from "@/lib/rate-limit";
 
-// 标记为动态路由，支持静态导出
-export const dynamic = 'force-dynamic';
+// Use Edge Runtime for minimal cold start and best TTFB
+export const runtime = 'edge';
+
+// Cache control headers for API responses
+const CACHE_CONTROL = 'public, max-age=0, must-revalidate';
 
 export async function POST(request: NextRequest) {
+  // Start timing for performance monitoring
+  const startTime = Date.now();
+
   try {
-    // Rate limiting
+    // Rate limiting - early return for limited clients
     const clientIP = getClientIP(request);
     const { isLimited, resetTime } = checkRateLimit(`upload:${clientIP}`);
 
@@ -21,7 +27,7 @@ export async function POST(request: NextRequest) {
     if (!file) {
       return NextResponse.json(
         { success: false, error: { code: 'MISSING_FILE', message: '请选择要上传的文件' } },
-        { status: 400 }
+        { status: 400, headers: { 'Cache-Control': CACHE_CONTROL } }
       );
     }
 
@@ -29,7 +35,7 @@ export async function POST(request: NextRequest) {
     if (!file.type.startsWith('image/')) {
       return NextResponse.json(
         { success: false, error: { code: 'INVALID_TYPE', message: '只能上传图片文件' } },
-        { status: 400 }
+        { status: 400, headers: { 'Cache-Control': CACHE_CONTROL } }
       );
     }
 
@@ -37,7 +43,7 @@ export async function POST(request: NextRequest) {
     if (file.size > 10 * 1024 * 1024) {
       return NextResponse.json(
         { success: false, error: { code: 'FILE_TOO_LARGE', message: '文件大小不能超过10MB' } },
-        { status: 400 }
+        { status: 400, headers: { 'Cache-Control': CACHE_CONTROL } }
       );
     }
 
@@ -49,7 +55,12 @@ export async function POST(request: NextRequest) {
     // 上传到Vercel Blob
     const blob = await put(filename, file, {
       access: 'public',
+      // Add token for faster uploads
+      token: process.env.BLOB_READ_WRITE_TOKEN,
     });
+
+    // Calculate processing time
+    const processingTime = Date.now() - startTime;
 
     return NextResponse.json({
       success: true,
@@ -58,7 +69,15 @@ export async function POST(request: NextRequest) {
         filename: filename,
         size: file.size,
       },
+      meta: {
+        processingTime,
+      },
       message: '上传成功',
+    }, {
+      headers: {
+        'Cache-Control': CACHE_CONTROL,
+        'X-Processing-Time': String(processingTime),
+      },
     });
   } catch (error) {
     console.error('上传错误:', error);
@@ -70,7 +89,7 @@ export async function POST(request: NextRequest) {
           message: '上传失败，请重试',
         },
       },
-      { status: 500 }
+      { status: 500, headers: { 'Cache-Control': CACHE_CONTROL } }
     );
   }
 }

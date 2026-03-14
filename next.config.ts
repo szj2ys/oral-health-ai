@@ -6,13 +6,25 @@ const nextConfig: NextConfig = {
   images: {
     // Vercel Image Optimization enabled for better performance
     unoptimized: false,
+    // Enable modern image formats for better compression
+    formats: ["image/avif", "image/webp"],
+    // Set reasonable device sizes for responsive images
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048],
+    // Set image sizes for different layouts
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     remotePatterns: [
       {
         protocol: "https",
         hostname: "*.vercel.app",
       },
+      {
+        protocol: "https",
+        hostname: "*.public.blob.vercel-storage.com",
+      },
     ],
   },
+  // Enable compression for better TTFB
+  compress: true,
   trailingSlash: true,
 };
 
