@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Share2, Lock, Unlock, Check, Link2 } from "lucide-react";
-import { trackShareCopy } from "@/lib/analytics";
+import { trackShareCopy, trackShareGateView, trackShareUnlock } from "@/lib/analytics";
 
 interface ShareGateProps {
   scanId: string;
@@ -21,7 +21,7 @@ export default function ShareGate({ scanId, children, onShare }: ShareGateProps)
   const [showShareModal, setShowShareModal] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  // Check if this scan has been shared before
+  // Check if this scan has been shared before and track gate view
   useEffect(() => {
     try {
       const sharedScans = JSON.parse(localStorage.getItem(SHARE_STORAGE_KEY) || "[]");
@@ -32,6 +32,9 @@ export default function ShareGate({ scanId, children, onShare }: ShareGateProps)
       // localStorage not available, default to unlocked
       setIsUnlocked(true);
     }
+
+    // Track gate view when component mounts
+    trackShareGateView(scanId);
   }, [scanId]);
 
   const handleShare = async (method: string) => {
@@ -63,6 +66,9 @@ export default function ShareGate({ scanId, children, onShare }: ShareGateProps)
     } catch {
       // Ignore localStorage errors
     }
+
+    // Track share unlock event
+    trackShareUnlock(scanId, method);
 
     setIsUnlocked(true);
     setShowShareModal(false);

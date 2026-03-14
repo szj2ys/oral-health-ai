@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { Calendar, ArrowRight } from "lucide-react";
+import { Calendar, ArrowRight, AlertCircle } from "lucide-react";
 import ShareTracker from "@/components/scan/ShareTracker";
 
 interface SharePageProps {
@@ -192,10 +192,15 @@ export default async function SharePage({ params }: SharePageProps) {
           </p>
         </div>
 
-        {/* Disclaimer */}
-        <p className="text-xs text-slate-400 text-center mt-8">
-          本报告仅供参考，不能替代专业医生的诊断。如有严重不适，请及时就医。
-        </p>
+        {/* Medical Disclaimer */}
+        <div className="bg-amber-50 rounded-xl p-4 border border-amber-200 mt-8">
+          <div className="flex gap-3">
+            <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0" />
+            <p className="text-sm text-amber-800">
+              本结果仅供参考，不能替代专业医生的诊断。如有不适，请及时就医。
+            </p>
+          </div>
+        </div>
       </main>
     </div>
   );

@@ -178,6 +178,16 @@ export default function HistoryDetailPage() {
               </p>
             </div>
 
+            {/* Medical Disclaimer */}
+            <div className="bg-amber-50 rounded-xl p-4 border border-amber-200">
+              <div className="flex gap-3">
+                <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0" />
+                <p className="text-sm text-amber-800">
+                  本结果仅供参考，不能替代专业医生的诊断。如有不适，请及时就医。
+                </p>
+              </div>
+            </div>
+
             {/* Issues */}
             {scan.issues && scan.issues.length > 0 ? (
               <div className="bg-white rounded-2xl p-6 border border-slate-200">

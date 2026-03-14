@@ -13,6 +13,8 @@ export type AnalyticsEvent =
   | "scan_error"
   | "share_card_view"
   | "share_card_copy"
+  | "share_gate_view"
+  | "share_unlock"
   | "dentist_cta_click"
   | "history_view"
   | "history_detail_view"
@@ -131,6 +133,25 @@ export function trackHistoryDelete() {
 export function trackPageView(path: string) {
   trackEvent("page_view", {
     path,
+  });
+}
+
+/**
+ * Track share gate view
+ */
+export function trackShareGateView(scanId: string) {
+  trackEvent("share_gate_view", {
+    scan_id: scanId.slice(0, 8),
+  });
+}
+
+/**
+ * Track share unlock
+ */
+export function trackShareUnlock(scanId: string, method: string) {
+  trackEvent("share_unlock", {
+    scan_id: scanId.slice(0, 8),
+    method,
   });
 }
 
