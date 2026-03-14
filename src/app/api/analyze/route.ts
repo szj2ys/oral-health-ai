@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { analyzeOralImage, generateMockAnalysis } from "@/lib/ai";
 import { prisma } from "@/lib/db";
 import { checkRateLimit, getClientIP, createRateLimitResponse } from "@/lib/rate-limit";
+import { uploadImage, generateScanFilename } from "@/lib/blob";
 
 // 标记为动态路由，支持静态导出
 export const dynamic = "force-dynamic";
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 检查图片大小
-    const base64Size = Buffer.from(imageBase64, "base64").length;
+    const base64Size = Buffer.from(imageBase64.replace(/^data:image\/\w+;base64,/, ""), "base64").length;
     if (base64Size > 10 * 1024 * 1024) {
       return NextResponse.json(
         {
@@ -41,11 +42,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 上传图片到Vercel Blob
+    let imageUrl: string;
+    try {
+      const filename = generateScanFilename(deviceId);
+      imageUrl = await uploadImage(imageBase64, filename);
+    } catch (uploadError) {
+      console.error("Image upload failed:", uploadError);
+      return NextResponse.json(
+        {
+          success: false,
+          error: { code: "UPLOAD_ERROR", message: "图片上传失败，请重试" },
+        },
+        { status: 500 }
+      );
+    }
+
     // 创建检测记录（初始状态）
     const scan = await prisma.scan.create({
       data: {
         deviceId: deviceId || null,
-        imageUrl: "data:image/jpeg;base64," + imageBase64.slice(0, 100) + "...", // 简化存储，实际应该上传到存储服务
+        imageUrl: imageUrl, // Now storing the actual Blob URL
         imageHash: await generateImageHash(imageBase64),
         status: "ANALYZING",
       },
