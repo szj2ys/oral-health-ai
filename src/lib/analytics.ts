@@ -186,6 +186,19 @@ export function trackCameraPermission(granted: boolean) {
 }
 
 /**
+ * Track camera permission with detailed state
+ */
+export function trackCameraPermissionState(
+  state: "prompt" | "granted" | "denied" | "unsupported" | "checking",
+  extra?: { error?: string }
+) {
+  trackEvent("scan_camera_permission", {
+    state,
+    ...extra,
+  });
+}
+
+/**
  * Track when photo is captured/uploaded
  */
 export function trackPhotoCaptured(source: "camera" | "upload") {
