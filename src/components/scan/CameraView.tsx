@@ -105,10 +105,10 @@ export default function CameraView({ onCapture, onError }: CameraViewProps) {
 
     if (capabilities.torch) {
       try {
-        await videoTrack.applyConstraints({
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          advanced: [{ torch: !flashMode }] as any,
-        });
+        // Use type assertion to handle non-standard torch property
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const constraints: any = { advanced: [{ torch: !flashMode }] };
+        await videoTrack.applyConstraints(constraints);
         setFlashMode(!flashMode);
       } catch {
         // Flash not supported
