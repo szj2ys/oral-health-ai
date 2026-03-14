@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Share2, Lock, Unlock, Check, Link2 } from "lucide-react";
+import { trackShareCopy } from "@/lib/analytics";
 
 interface ShareGateProps {
   scanId: string;
@@ -48,6 +49,8 @@ export default function ShareGate({ scanId, children, onShare }: ShareGateProps)
       await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+      // Track share copy
+      trackShareCopy(scanId);
     }
 
     // Mark as unlocked

@@ -14,6 +14,7 @@ import {
   Area,
   AreaChart,
 } from "recharts";
+import { trackHistoryView } from "@/lib/analytics";
 
 interface HistoryItem {
   id: string;
@@ -47,6 +48,8 @@ export default function HistoryPage() {
 
   useEffect(() => {
     fetchHistory();
+    // Track history view
+    trackHistoryView(history?.total || 0);
   }, []);
 
   async function fetchHistory() {

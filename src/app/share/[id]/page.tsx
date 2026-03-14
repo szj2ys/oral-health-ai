@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { Calendar, ArrowRight } from "lucide-react";
+import ShareTracker from "@/components/scan/ShareTracker";
 
 interface SharePageProps {
   params: Promise<{ id: string }>;
@@ -105,6 +106,9 @@ export default async function SharePage({ params }: SharePageProps) {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      {/* Analytics Tracking */}
+      <ShareTracker scanId={scan.id} score={scan.overallScore} />
+
       {/* Header */}
       <header className="bg-white border-b border-slate-200">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">

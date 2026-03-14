@@ -6,6 +6,7 @@ import { Camera, ArrowLeft, RotateCcw, Check, AlertCircle, Share2, Download } fr
 import ScanOnboarding from "@/components/ScanOnboarding";
 import DentistCTA from "@/components/scan/DentistCTA";
 import ShareGate from "@/components/scan/ShareGate";
+import { trackScanUpload, trackScanComplete, trackScanError } from "@/lib/analytics";
 
 // 分析结果类型
 interface AnalysisIssue {
@@ -34,6 +35,9 @@ export default function ScanPage() {
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Track upload event
+      trackScanUpload(file.size, file.type);
+
       const reader = new FileReader();
       reader.onloadend = () => {
         setCapturedImage(reader.result as string);
@@ -72,11 +76,19 @@ export default function ScanPage() {
         throw new Error(result.error?.message || '分析失败');
       }
 
+      // Track successful completion
+      trackScanComplete(result.data.overallScore, result.data.issues?.length || 0);
+
       setAnalysisResult(result.data);
       setStep("result");
     } catch (error) {
       console.error('分析错误:', error);
-      setErrorMessage(error instanceof Error ? error.message : '分析过程中出现错误');
+      const message = error instanceof Error ? error.message : '分析过程中出现错误';
+      setErrorMessage(message);
+
+      // Track error
+      trackScanError('ANALYZE_ERROR', message);
+
       setStep("error");
     }
   }, [capturedImage]);
