@@ -57,8 +57,10 @@ export async function generateMetadata({ params }: SharePageProps): Promise<Meta
     };
   }
 
-  const title = `口腔健康评分 ${scan.overallScore}分 - ${scan.overallScore >= 80 ? "优秀" : scan.overallScore >= 60 ? "良好" : "需改善"}`;
+  const status = scan.overallScore >= 80 ? "优秀" : scan.overallScore >= 60 ? "良好" : "需改善";
+  const title = `口腔健康评分 ${scan.overallScore}分 - ${status}`;
   const description = `发现 ${scan.issues.length} 个口腔问题，快来看看我的口腔健康报告！`;
+  const ogImageUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://oral-health-ai.vercel.app"}/api/og?score=${scan.overallScore}&status=${encodeURIComponent(status)}&date=${scan.date}`;
 
   return {
     title,
@@ -67,6 +69,18 @@ export async function generateMetadata({ params }: SharePageProps): Promise<Meta
       title,
       description,
       type: "article",
+      images: [{
+        url: ogImageUrl,
+        width: 1200,
+        height: 630,
+        alt: title,
+      }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [ogImageUrl],
     },
   };
 }
