@@ -19,22 +19,6 @@ export async function GET(
   try {
     const challenge = await prisma.challenge.findUnique({
       where: { id },
-      include: {
-        creatorScan: {
-          select: {
-            id: true,
-            overallScore: true,
-            status: true,
-          },
-        },
-        friendScan: {
-          select: {
-            id: true,
-            overallScore: true,
-            status: true,
-          },
-        },
-      },
     });
 
     if (!challenge) {
@@ -46,6 +30,18 @@ export async function GET(
         { status: 404, headers: { "Cache-Control": CACHE_CONTROL_ERROR } }
       );
     }
+
+    // Fetch scan details separately
+    const [creatorScan, friendScan] = await Promise.all([
+      challenge.creatorScanId ? prisma.scan.findUnique({
+        where: { id: challenge.creatorScanId },
+        select: { id: true, overallScore: true, status: true },
+      }) : null,
+      challenge.friendScanId ? prisma.scan.findUnique({
+        where: { id: challenge.friendScanId },
+        select: { id: true, overallScore: true, status: true },
+      }) : null,
+    ]);
 
     // Check if challenge has expired
     const now = new Date();

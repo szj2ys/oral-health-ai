@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect, useTransition, useMemo } from "react";
+import { useState, useRef, useCallback, useEffect, useTransition, useMemo, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -45,6 +45,22 @@ interface AnalysisResult {
 }
 
 export default function ScanPage() {
+  return (
+    <Suspense fallback={<ScanLoading />}>
+      <ScanPageContent />
+    </Suspense>
+  );
+}
+
+function ScanLoading() {
+  return (
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
+    </div>
+  );
+}
+
+function ScanPageContent() {
   const [step, setStep] = useState<"guide" | "camera-permission" | "camera" | "preview" | "analyzing" | "result" | "error">("guide");
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
@@ -184,7 +200,14 @@ export default function ScanPage() {
             });
 
             if (completeResponse.ok) {
-              trackChallengeComplete(challengeId, result.data.overallScore);
+              const completeData = await completeResponse.json();
+              const creatorScore = completeData.data?.challenge?.creatorScore || 0;
+              const friendScore = result.data.overallScore;
+              let winner: "creator" | "friend" | "tie" = "tie";
+              if (creatorScore > friendScore) winner = "creator";
+              else if (friendScore > creatorScore) winner = "friend";
+
+              trackChallengeComplete(challengeId, creatorScore, friendScore, winner);
               // Redirect to result page
               router.push(`/challenge/${challengeId}/result`);
             }
@@ -612,7 +635,7 @@ ${analysisResult.recommendations.map((rec, i) => `${i + 1}. ${rec}`).join("\n")}
             {challengeMode === "creating" && analysisResult && (
               <ChallengeCreator
                 scanId={analysisResult.scanId!}
-                creatorScore={analysisResult.overallScore}
+                score={analysisResult.overallScore}
                 onChallengeCreated={(challengeId) => {
                   setCreatedChallengeId(challengeId);
                   setChallengeMode("sharing");

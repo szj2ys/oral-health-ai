@@ -38,9 +38,6 @@ export async function POST(request: NextRequest) {
     // Find the challenge
     const challenge = await prisma.challenge.findUnique({
       where: { id: challengeId },
-      include: {
-        creatorScan: true,
-      },
     });
 
     if (!challenge) {
@@ -52,6 +49,12 @@ export async function POST(request: NextRequest) {
         { status: 404, headers: { "Cache-Control": CACHE_CONTROL } }
       );
     }
+
+    // Fetch creator scan separately for imageUrl
+    const creatorScan = challenge.creatorScanId ? await prisma.scan.findUnique({
+      where: { id: challenge.creatorScanId },
+      select: { imageUrl: true },
+    }) : null;
 
     // Check if challenge is still pending
     if (challenge.status !== "PENDING") {
@@ -112,7 +115,7 @@ export async function POST(request: NextRequest) {
         status: "ACCEPTED",
         // Return creator scan info for reference
         creatorScanInfo: {
-          imageUrl: challenge.creatorScan?.imageUrl,
+          imageUrl: creatorScan?.imageUrl,
         },
         // Redirect to scan page
         redirectUrl: `/scan?challenge=${challengeId}&mode=challenge`,
