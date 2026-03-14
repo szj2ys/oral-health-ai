@@ -10,7 +10,8 @@
     "postinstall": "prisma generate",
     "db:migrate": "prisma migrate deploy",
     "db:generate": "prisma generate",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "postbuild": "echo 'Run notify-indexing script manually: GOOGLE_INDEXING_CREDENTIALS=$(cat service-account.json) npx tsx scripts/notify-indexing.ts'"
   },
   "dependencies": {
     "@prisma/client": "^6.19.2",
@@ -33,6 +34,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
+    "googleapis": "^171.4.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
