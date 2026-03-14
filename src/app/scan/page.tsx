@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Camera, ArrowLeft, RotateCcw, Check, AlertCircle, Share2, Download } from "lucide-react";
 import ScanOnboarding from "@/components/ScanOnboarding";
 import DentistCTA from "@/components/scan/DentistCTA";
+import ShareGate from "@/components/scan/ShareGate";
 
 // 分析结果类型
 interface AnalysisIssue {
@@ -267,21 +268,23 @@ export default function ScanPage() {
               </div>
             )}
 
-            {/* 建议 */}
-            {analysisResult.recommendations && analysisResult.recommendations.length > 0 && (
-              <div className="bg-white rounded-2xl p-6 border border-slate-200">
-                <h3 className="font-semibold text-slate-900 mb-4">护理建议</h3>
-                <ul className="space-y-3">
-                  {analysisResult.recommendations.map((rec, index) => (
-                    <li key={index} className="flex gap-3 text-slate-600">
-                      <span className="flex-shrink-0 w-6 h-6 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs font-medium">
-                        {index + 1}
-                      </span>
-                      {rec}
-                    </li>
-                  ))}
-                </ul>
-              </div>
+            {/* 建议 - 高级内容，分享后解锁 */}
+            {analysisResult.recommendations && analysisResult.recommendations.length > 0 && analysisResult.scanId && (
+              <ShareGate scanId={analysisResult.scanId}>
+                <div className="bg-white rounded-2xl p-6 border border-slate-200">
+                  <h3 className="font-semibold text-slate-900 mb-4">护理建议</h3>
+                  <ul className="space-y-3">
+                    {analysisResult.recommendations.map((rec, index) => (
+                      <li key={index} className="flex gap-3 text-slate-600">
+                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs font-medium">
+                          {index + 1}
+                        </span>
+                        {rec}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </ShareGate>
             )}
 
             {/* Dentist CTA */}
