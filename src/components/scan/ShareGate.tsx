@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Share2, Lock, Unlock, Check, Link2 } from "lucide-react";
-import { trackShareCopy, trackShareGateView, trackShareUnlock } from "@/lib/analytics";
+import { trackShareCopy, trackShareGateView, trackShareUnlock, trackScanError } from "@/lib/analytics";
 
 interface ShareGateProps {
   scanId: string;
@@ -13,64 +13,141 @@ interface ShareGateProps {
 const SHARE_STORAGE_KEY = "oral_ai_shared_scans";
 
 /**
+ * Check if a scan is unlocked in localStorage
+ * Returns true if localStorage is unavailable (graceful degradation)
+ */
+function checkIsUnlocked(scanId: string): boolean {
+  try {
+    if (typeof window === "undefined") return false;
+    const stored = localStorage.getItem(SHARE_STORAGE_KEY);
+    if (!stored) return false;
+    const sharedScans = JSON.parse(stored);
+    return Array.isArray(sharedScans) && sharedScans.includes(scanId);
+  } catch (error) {
+    // Log error for debugging but allow access
+    console.error("[ShareGate] localStorage read error:", error);
+    trackScanError("SHAREGATE_STORAGE_READ", error instanceof Error ? error.message : "unknown");
+    return true; // Graceful degradation - unlock if we can't verify
+  }
+}
+
+/**
+ * Persist unlocked scan to localStorage
+ * Returns success status
+ */
+function persistUnlock(scanId: string): boolean {
+  try {
+    const stored = localStorage.getItem(SHARE_STORAGE_KEY);
+    const sharedScans = stored ? JSON.parse(stored) : [];
+    if (!Array.isArray(sharedScans)) {
+      // Reset if corrupted
+      localStorage.setItem(SHARE_STORAGE_KEY, JSON.stringify([scanId]));
+      return true;
+    }
+    if (!sharedScans.includes(scanId)) {
+      sharedScans.push(scanId);
+      localStorage.setItem(SHARE_STORAGE_KEY, JSON.stringify(sharedScans));
+    }
+    return true;
+  } catch (error) {
+    console.error("[ShareGate] localStorage write error:", error);
+    trackScanError("SHAREGATE_STORAGE_WRITE", error instanceof Error ? error.message : "unknown");
+    return false;
+  }
+}
+
+/**
  * ShareGate - Locks premium content until user shares
  * Uses localStorage to track which scans have been shared
  */
 export default function ShareGate({ scanId, children, onShare }: ShareGateProps) {
-  const [isUnlocked, setIsUnlocked] = useState(() => {
-    try {
-      if (typeof window === "undefined") return false;
-      const sharedScans = JSON.parse(localStorage.getItem(SHARE_STORAGE_KEY) || "[]");
-      return sharedScans.includes(scanId);
-    } catch {
-      // localStorage not available, default to unlocked
-      return true;
-    }
-  });
+  const [isUnlocked, setIsUnlocked] = useState(() => checkIsUnlocked(scanId));
   const [showShareModal, setShowShareModal] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  // Track gate view when component mounts
+  // Track gate view when component mounts (only once)
   useEffect(() => {
     trackShareGateView(scanId);
   }, [scanId]);
 
+  // Cross-tab synchronization: listen for storage changes
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === SHARE_STORAGE_KEY) {
+        const newlyUnlocked = checkIsUnlocked(scanId);
+        setIsUnlocked(newlyUnlocked);
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, [scanId]);
+
+  // Periodic check for unlock state (handles edge cases)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const currentState = checkIsUnlocked(scanId);
+      if (currentState !== isUnlocked) {
+        setIsUnlocked(currentState);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [scanId, isUnlocked]);
+
+  const handleShareComplete = useCallback((method: string) => {
+    // Persist unlock state first
+    const persisted = persistUnlock(scanId);
+
+    if (persisted) {
+      // Only track unlock if persistence succeeded
+      trackShareUnlock(scanId, method);
+      setIsUnlocked(true);
+      setShowShareModal(false);
+      onShare?.();
+    } else {
+      // Show error or allow anyway if persistence failed
+      console.warn("[ShareGate] Failed to persist unlock state");
+      // Still unlock for UX, but log the issue
+      setIsUnlocked(true);
+      setShowShareModal(false);
+      onShare?.();
+    }
+  }, [scanId, onShare]);
+
   const handleShare = async (method: string) => {
     const shareUrl = `${window.location.origin}/share/${scanId}`;
 
-    // Track share event
-    if (typeof window !== "undefined" && (window as typeof window & { gtag?: (...args: unknown[]) => void }).gtag) {
-      (window as typeof window & { gtag: (...args: unknown[]) => void }).gtag("event", "share", {
-        method,
-        item_id: scanId,
-      });
+    // Track GA4 share event using consistent utility
+    if (typeof window !== "undefined" && window.gtag) {
+      try {
+        window.gtag("event", "share", {
+          method,
+          item_id: scanId.slice(0, 8),
+        });
+      } catch (e) {
+        // Silent fail for analytics
+      }
     }
 
     if (method === "copy") {
-      await navigator.clipboard.writeText(shareUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-      // Track share copy
-      trackShareCopy(scanId);
-    }
-
-    // Mark as unlocked
-    try {
-      const sharedScans = JSON.parse(localStorage.getItem(SHARE_STORAGE_KEY) || "[]");
-      if (!sharedScans.includes(scanId)) {
-        sharedScans.push(scanId);
-        localStorage.setItem(SHARE_STORAGE_KEY, JSON.stringify(sharedScans));
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+        // Track copy before completing
+        trackShareCopy(scanId);
+        handleShareComplete("copy");
+      } catch (error) {
+        console.error("[ShareGate] Clipboard write failed:", error);
+        trackScanError("SHAREGATE_CLIPBOARD_FAIL", error instanceof Error ? error.message : "unknown");
+        // Still complete the share action
+        handleShareComplete("copy_failed");
       }
-    } catch {
-      // Ignore localStorage errors
+    } else {
+      // For other methods, just complete
+      handleShareComplete(method);
     }
-
-    // Track share unlock event
-    trackShareUnlock(scanId, method);
-
-    setIsUnlocked(true);
-    setShowShareModal(false);
-    onShare?.();
   };
 
   const handleNativeShare = async () => {
@@ -84,12 +161,17 @@ export default function ShareGate({ scanId, children, onShare }: ShareGateProps)
     try {
       if (navigator.share) {
         await navigator.share(shareData);
-        handleShare("native");
+        handleShareComplete("native");
       } else {
         setShowShareModal(true);
       }
-    } catch {
+    } catch (error) {
       // User cancelled or share failed
+      if (error instanceof Error && error.name !== "AbortError") {
+        console.error("[ShareGate] Native share failed:", error);
+        trackScanError("SHAREGATE_NATIVE_FAIL", error.message);
+      }
+      // Only show modal if not a user cancellation
       setShowShareModal(true);
     }
   };
