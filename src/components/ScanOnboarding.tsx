@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { X, ChevronRight, ChevronLeft, Camera, Sun, Focus } from "lucide-react";
+import { trackEvent } from "@/lib/analytics";
 
 interface OnboardingStep {
   title: string;
@@ -40,7 +41,7 @@ export default function ScanOnboarding() {
     // Component mounted, initial state already set via lazy initialization
     // Track that onboarding was shown
     if (showOnboarding) {
-      track("onboarding_shown", { step: currentStep });
+      trackEvent("page_view", { step: currentStep });
     }
   }, []);
 

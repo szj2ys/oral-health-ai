@@ -7,6 +7,15 @@ import { track as vercelTrack } from "@vercel/analytics";
 
 // Event names for type safety
 export type AnalyticsEvent =
+  // Scan funnel events
+  | "scan_enter"
+  | "scan_camera_permission"
+  | "scan_photo_captured"
+  | "scan_analysis_start"
+  | "scan_analysis_complete"
+  | "scan_report_view"
+  | "scan_dropoff"
+  // Legacy events
   | "scan_upload"
   | "scan_analyze"
   | "scan_complete"
@@ -153,6 +162,138 @@ export function trackShareUnlock(scanId: string, method: string) {
     scan_id: scanId.slice(0, 8),
     method,
   });
+}
+
+// ==================== Scan Funnel Events ====================
+
+/**
+ * Track when user enters the scan page
+ */
+export function trackScanEnter(source?: string) {
+  trackEvent("scan_enter", {
+    source: source || "direct",
+    timestamp: Date.now(),
+  });
+}
+
+/**
+ * Track camera permission request/result
+ */
+export function trackCameraPermission(granted: boolean) {
+  trackEvent("scan_camera_permission", {
+    granted,
+  });
+}
+
+/**
+ * Track when photo is captured/uploaded
+ */
+export function trackPhotoCaptured(source: "camera" | "upload") {
+  trackEvent("scan_photo_captured", {
+    source,
+  });
+}
+
+/**
+ * Track when analysis starts
+ */
+export function trackAnalysisStart() {
+  trackEvent("scan_analysis_start");
+}
+
+/**
+ * Track when analysis completes
+ */
+export function trackAnalysisComplete(durationMs: number) {
+  trackEvent("scan_analysis_complete", {
+    duration_ms: durationMs,
+  });
+}
+
+/**
+ * Track when user views the report
+ */
+export function trackReportView(scanId: string) {
+  trackEvent("scan_report_view", {
+    scan_id: scanId.slice(0, 8),
+  });
+}
+
+/**
+ * Track when user drops off from scan flow
+ */
+export function trackScanDropoff(step: string, reason?: string) {
+  trackEvent("scan_dropoff", {
+    step,
+    reason: reason || "unknown",
+  });
+}
+
+// ==================== Funnel Analysis Utilities ====================
+
+/**
+ * Funnel stage definitions in order
+ */
+export const FUNNEL_STAGES = [
+  { event: "scan_enter", label: "进入扫描" },
+  { event: "scan_camera_permission", label: "相机权限" },
+  { event: "scan_photo_captured", label: "照片拍摄" },
+  { event: "scan_analysis_start", label: "开始分析" },
+  { event: "scan_analysis_complete", label: "分析完成" },
+  { event: "scan_report_view", label: "查看报告" },
+] as const;
+
+/**
+ * Calculate conversion rate between two stages
+ */
+export function calculateConversionRate(
+  fromCount: number,
+  toCount: number
+): number {
+  if (fromCount === 0) return 0;
+  return Math.round((toCount / fromCount) * 100 * 100) / 100;
+}
+
+/**
+ * Calculate funnel metrics from event counts
+ */
+export interface FunnelMetrics {
+  stage: string;
+  label: string;
+  count: number;
+  conversionRate: number; // from previous stage
+  dropoffRate: number;
+}
+
+export function calculateFunnelMetrics(
+  stageCounts: Record<string, number>
+): FunnelMetrics[] {
+  return FUNNEL_STAGES.map((stage, index) => {
+    const count = stageCounts[stage.event] || 0;
+    const prevCount = index > 0 ? stageCounts[FUNNEL_STAGES[index - 1].event] || 0 : count;
+
+    const conversionRate = index === 0
+      ? 100
+      : calculateConversionRate(prevCount, count);
+
+    return {
+      stage: stage.event,
+      label: stage.label,
+      count,
+      conversionRate,
+      dropoffRate: Math.round((100 - conversionRate) * 100) / 100,
+    };
+  });
+}
+
+/**
+ * Get overall funnel conversion rate (enter to report view)
+ */
+export function getOverallConversionRate(metrics: FunnelMetrics[]): number {
+  if (metrics.length === 0) return 0;
+  const enterCount = metrics[0]?.count || 0;
+  const completeCount = metrics[metrics.length - 1]?.count || 0;
+  return calculateConversionRate(enterCount, completeCount);
 }
 
 // Type augmentation for gtag

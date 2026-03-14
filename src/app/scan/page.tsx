@@ -7,7 +7,17 @@ import { Camera, ArrowLeft, RotateCcw, Check, AlertCircle, Share2, Download } fr
 import ScanOnboarding from "@/components/ScanOnboarding";
 import DentistCTA from "@/components/scan/DentistCTA";
 import ShareGate from "@/components/scan/ShareGate";
-import { trackScanUpload, trackScanComplete, trackScanError } from "@/lib/analytics";
+import {
+  trackScanUpload,
+  trackScanComplete,
+  trackScanError,
+  trackScanEnter,
+  trackPhotoCaptured,
+  trackAnalysisStart,
+  trackAnalysisComplete,
+  trackReportView,
+} from "@/lib/analytics";
+import { useEffect } from "react";
 
 // 分析结果类型
 interface AnalysisIssue {
@@ -32,12 +42,34 @@ export default function ScanPage() {
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [shareCopied, setShareCopied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const analysisStartTime = useRef<number>(0);
+
+  // Track scan enter on mount
+  useEffect(() => {
+    trackScanEnter();
+  }, []);
+
+  // Track step changes for funnel analysis
+  useEffect(() => {
+    if (step === "analyzing") {
+      trackAnalysisStart();
+      analysisStartTime.current = Date.now();
+    } else if (step === "result" && analysisResult?.scanId) {
+      const duration = analysisStartTime.current
+        ? Date.now() - analysisStartTime.current
+        : 0;
+      trackAnalysisComplete(duration);
+      trackReportView(analysisResult.scanId);
+    }
+  }, [step, analysisResult]);
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       // Track upload event
       trackScanUpload(file.size, file.type);
+      // Track photo captured
+      trackPhotoCaptured("upload");
 
       const reader = new FileReader();
       reader.onloadend = () => {
