@@ -4,6 +4,7 @@ import { useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import { Camera, ArrowLeft, RotateCcw, Check, AlertCircle, Share2, Download } from "lucide-react";
 import ScanOnboarding from "@/components/ScanOnboarding";
+import DentistCTA from "@/components/scan/DentistCTA";
 
 // 分析结果类型
 interface AnalysisIssue {
@@ -282,6 +283,12 @@ export default function ScanPage() {
                 </ul>
               </div>
             )}
+
+            {/* Dentist CTA */}
+            <DentistCTA
+              severity={analysisResult.issues[0]?.severity || "unknown"}
+              issuesCount={analysisResult.issues.length}
+            />
 
             <div className="flex gap-3">
               <Link

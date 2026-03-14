@@ -74,7 +74,7 @@ async function main(): Promise<void> {
 
   let credentials: object;
   try {
-    credentials = JSON.parse(credentialsJson);
+    credentials = JSON.parse(credentialsJson!);
   } catch {
     console.error("❌ Failed to parse GOOGLE_INDEXING_CREDENTIALS. Must be valid JSON.");
     process.exit(1);
