@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import Script from "next/script";
 
 interface JsonLdProps {
@@ -12,12 +13,14 @@ interface JsonLdProps {
  * 注意：数据应来自受信任的来源，避免XSS风险
  */
 export function JsonLd({ data }: JsonLdProps) {
+  // 使用useId生成稳定ID，避免Math.random导致的不纯渲染
+  const id = useId();
   // 确保数据是有效的JSON，防止XSS
   const sanitizedData = JSON.stringify(data).replace(/</g, "\\u003c");
 
   return (
     <Script
-      id={`jsonld-${Math.random().toString(36).substr(2, 9)}`}
+      id={`jsonld-${id}`}
       type="application/ld+json"
       dangerouslySetInnerHTML={{ __html: sanitizedData }}
     />

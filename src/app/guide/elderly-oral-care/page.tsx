@@ -56,7 +56,7 @@ export default function ElderlyOralCarePage() {
               老年人牙齿护理指南：保持晚年口腔健康
             </h1>
             <p className="text-slate-600 text-lg">
-              "老掉牙"并非不可避免。良好的口腔护理可以帮助老年人保留更多天然牙，维护咀嚼功能，提高生活质量。
+              &quot;老掉牙&quot;并非不可避免。良好的口腔护理可以帮助老年人保留更多天然牙，维护咀嚼功能，提高生活质量。
             </p>
           </header>
 

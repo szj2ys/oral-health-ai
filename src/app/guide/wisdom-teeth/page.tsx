@@ -76,7 +76,7 @@ export default function WisdomTeethPage() {
             <h2 className="text-xl font-bold text-slate-900 mb-4">什么是智齿</h2>
             <div className="prose prose-slate max-w-none">
               <p className="text-slate-600 mb-4">
-                智齿是人类口腔中最后萌出的牙齿，位于牙列最末端，上下左右各一颗，共4颗。因其通常在17-25岁萌出，此时人的心智趋于成熟，故被称为"智齿"。
+                智齿是人类口腔中最后萌出的牙齿，位于牙列最末端，上下左右各一颗，共4颗。因其通常在17-25岁萌出，此时人的心智趋于成熟，故被称为&quot;智齿&quot;。
               </p>
               <div className="bg-blue-50 rounded-xl p-5 border border-blue-100 mb-4">
                 <h3 className="font-semibold text-blue-900 mb-3">智齿萌出时间</h3>
@@ -311,7 +311,7 @@ export default function WisdomTeethPage() {
                   <span className="text-slate-400 group-open:rotate-180 transition-transform">▼</span>
                 </summary>
                 <div className="p-4 pt-0 text-slate-600 text-sm">
-                  不会。智齿位于颌骨内，拔除后不会改变面部轮廓。面部轮廓主要由颌骨形状和咬肌决定。拔除智齿后短期内可能因肿胀显得"脸肿"，消肿后恢复原状。
+                  不会。智齿位于颌骨内，拔除后不会改变面部轮廓。面部轮廓主要由颌骨形状和咬肌决定。拔除智齿后短期内可能因肿胀显得&quot;脸肿&quot;，消肿后恢复原状。
                 </div>
               </details>
               <details className="group border border-slate-200 rounded-lg">
@@ -320,7 +320,7 @@ export default function WisdomTeethPage() {
                   <span className="text-slate-400 group-open:rotate-180 transition-transform">▼</span>
                 </summary>
                 <div className="p-4 pt-0 text-slate-600 text-sm">
-                  不会。智齿与智力无关，"智齿"名称仅因萌出时间较晚（17-25岁）而得名。拔除智齿不会影响记忆力或智商。
+                  不会。智齿与智力无关，&quot;智齿&quot;名称仅因萌出时间较晚（17-25岁）而得名。拔除智齿不会影响记忆力或智商。
                 </div>
               </details>
               <details className="group border border-slate-200 rounded-lg">

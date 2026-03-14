@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { MapPin, Phone, Navigation, ExternalLink } from "lucide-react";
 import { trackDentistCTA } from "@/lib/analytics";
 
@@ -46,24 +46,6 @@ const SAMPLE_CLINICS: Record<string, Clinic[]> = {
 export default function DentistCTA({ severity, issuesCount }: DentistCTAProps) {
   const [showClinics, setShowClinics] = useState(false);
   const [selectedCity, setSelectedCity] = useState("default");
-  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
-
-  // Try to get user location on mount
-  useEffect(() => {
-    if (typeof window !== "undefined" && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setUserLocation({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          });
-        },
-        (error) => {
-          console.log("Location access denied:", error);
-        }
-      );
-    }
-  }, []);
 
   // Determine urgency level and styling
   const getUrgencyInfo = () => {
@@ -103,17 +85,17 @@ export default function DentistCTA({ severity, issuesCount }: DentistCTAProps) {
   const urgency = getUrgencyInfo();
   const clinics = SAMPLE_CLINICS[selectedCity] || SAMPLE_CLINICS.default;
 
-  const handleNavigate = (clinic: Clinic) => {
+  const handleNavigate = useCallback((clinic: Clinic) => {
     if (clinic.name.includes("请选择")) return;
     const query = encodeURIComponent(`${clinic.name} ${clinic.address}`);
     window.open(`https://maps.google.com/?q=${query}`, "_blank");
-  };
+  }, []);
 
-  const handleCall = (phone: string) => {
+  const handleCall = useCallback((phone: string) => {
     if (phone) {
       window.location.href = `tel:${phone}`;
     }
-  };
+  }, []);
 
   return (
     <div className={`${urgency.bgColor} rounded-2xl p-6 border ${urgency.borderColor}`}>

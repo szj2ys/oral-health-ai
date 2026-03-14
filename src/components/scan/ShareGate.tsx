@@ -17,23 +17,21 @@ const SHARE_STORAGE_KEY = "oral_ai_shared_scans";
  * Uses localStorage to track which scans have been shared
  */
 export default function ShareGate({ scanId, children, onShare }: ShareGateProps) {
-  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [isUnlocked, setIsUnlocked] = useState(() => {
+    try {
+      if (typeof window === "undefined") return false;
+      const sharedScans = JSON.parse(localStorage.getItem(SHARE_STORAGE_KEY) || "[]");
+      return sharedScans.includes(scanId);
+    } catch {
+      // localStorage not available, default to unlocked
+      return true;
+    }
+  });
   const [showShareModal, setShowShareModal] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  // Check if this scan has been shared before and track gate view
+  // Track gate view when component mounts
   useEffect(() => {
-    try {
-      const sharedScans = JSON.parse(localStorage.getItem(SHARE_STORAGE_KEY) || "[]");
-      if (sharedScans.includes(scanId)) {
-        setIsUnlocked(true);
-      }
-    } catch {
-      // localStorage not available, default to unlocked
-      setIsUnlocked(true);
-    }
-
-    // Track gate view when component mounts
     trackShareGateView(scanId);
   }, [scanId]);
 

@@ -29,14 +29,18 @@ const steps: OnboardingStep[] = [
 ];
 
 export default function ScanOnboarding() {
-  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const hasSeenOnboarding = localStorage.getItem("scanOnboardingSeen");
+    return !hasSeenOnboarding;
+  });
   const [currentStep, setCurrentStep] = useState(0);
 
   useEffect(() => {
-    // Check if user has seen onboarding
-    const hasSeenOnboarding = localStorage.getItem("scanOnboardingSeen");
-    if (!hasSeenOnboarding) {
-      setShowOnboarding(true);
+    // Component mounted, initial state already set via lazy initialization
+    // Track that onboarding was shown
+    if (showOnboarding) {
+      track("onboarding_shown", { step: currentStep });
     }
   }, []);
 

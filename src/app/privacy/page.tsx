@@ -29,7 +29,7 @@ export default function PrivacyPage() {
             </p>
 
             <p className="text-slate-600 mb-6">
-              张二口腔AI（以下简称"我们"或"本服务"）重视您的隐私保护。本隐私政策说明我们如何收集、使用和保护您的个人信息。
+              张二口腔AI（以下简称&quot;我们&quot;或&quot;本服务&quot;）重视您的隐私保护。本隐私政策说明我们如何收集、使用和保护您的个人信息。
             </p>
 
             <h2 className="text-lg font-semibold text-slate-900 mt-6 mb-3">1. 我们收集的信息</h2>

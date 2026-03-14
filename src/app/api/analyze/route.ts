@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
   try {
     // Rate limiting
     const clientIP = getClientIP(request);
-    const { isLimited, remaining, resetTime } = checkRateLimit(`analyze:${clientIP}`);
+    const { isLimited, resetTime } = checkRateLimit(`analyze:${clientIP}`);
 
     if (isLimited) {
       return createRateLimitResponse(resetTime);

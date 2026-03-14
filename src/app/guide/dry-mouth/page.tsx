@@ -56,7 +56,7 @@ export default function DryMouthPage() {
               口干是什么原因？口干症的症状、原因与缓解方法
             </h1>
             <p className="text-slate-600 text-lg">
-              口干不仅仅是"口渴"，长期口干会严重影响口腔健康，增加蛀牙、口腔感染风险。本文详解口干症的原因和应对方法。
+              口干不仅仅是&quot;口渴&quot;，长期口干会严重影响口腔健康，增加蛀牙、口腔感染风险。本文详解口干症的原因和应对方法。
             </p>
           </header>
 

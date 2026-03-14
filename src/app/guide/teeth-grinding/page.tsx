@@ -269,7 +269,7 @@ export default function TeethGrindingPage() {
                   <span className="text-slate-400 group-open:rotate-180 transition-transform">▼</span>
                 </summary>
                 <div className="p-4 pt-0 text-slate-600 text-sm">
-                  磨牙很难完全"治愈"，但可以有效控制。通过减压、佩戴咬合垫等方法，可以减少磨牙频率和强度，保护牙齿免受损伤。关键是找到诱因并针对性处理。
+                  磨牙很难完全&quot;治愈&quot;，但可以有效控制。通过减压、佩戴咬合垫等方法，可以减少磨牙频率和强度，保护牙齿免受损伤。关键是找到诱因并针对性处理。
                 </div>
               </details>
               <details className="group border border-slate-200 rounded-lg">
