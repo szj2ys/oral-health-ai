@@ -59,6 +59,7 @@ export async function GET(request: NextRequest) {
           recommendations: scan.recommendations || [],
           notes: scan.notes || "",
           status: scan.status,
+          imageUrl: scan.imageUrl,
         },
         message: "获取成功",
       });

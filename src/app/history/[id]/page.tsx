@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
-import { ArrowLeft, Calendar, Loader2, AlertCircle } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
+import { ArrowLeft, Calendar, Loader2, AlertCircle, Trash2, ImageIcon } from "lucide-react";
 
 interface AnalysisIssue {
   type: string;
@@ -20,15 +20,19 @@ interface ScanDetail {
   recommendations: string[];
   notes: string;
   status: string;
+  imageUrl?: string;
 }
 
 export default function HistoryDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const id = params.id as string;
 
   const [scan, setScan] = useState<ScanDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -55,6 +59,30 @@ export default function HistoryDetailPage() {
       setError(err instanceof Error ? err.message : "获取详情失败");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!id) return;
+
+    setDeleting(true);
+    try {
+      const deviceId = localStorage.getItem("deviceId") || "";
+      const response = await fetch(`/api/history?id=${id}&deviceId=${deviceId}`, {
+        method: "DELETE",
+      });
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error?.message || "删除失败");
+      }
+
+      router.push("/history");
+    } catch (err) {
+      console.error("删除失败:", err);
+      setError(err instanceof Error ? err.message : "删除失败");
+      setDeleting(false);
+      setShowDeleteConfirm(false);
     }
   }
 
@@ -117,6 +145,23 @@ export default function HistoryDetailPage() {
               <Calendar className="w-4 h-4" />
               <span>{scan.date}</span>
             </div>
+
+            {/* Photo Display */}
+            {scan.imageUrl && (
+              <div className="bg-white rounded-2xl p-4 border border-slate-200">
+                <h3 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                  <ImageIcon className="w-4 h-4" />
+                  检测照片
+                </h3>
+                <div className="rounded-xl overflow-hidden bg-slate-100">
+                  <img
+                    src={scan.imageUrl}
+                    alt="口腔检测照片"
+                    className="w-full h-auto max-h-80 object-contain"
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Score Card */}
             <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 text-white text-center">
@@ -193,6 +238,47 @@ export default function HistoryDetailPage() {
                 再次检测
               </Link>
             </div>
+
+            {/* Delete Button */}
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="w-full py-3 text-red-600 border border-red-200 rounded-xl font-medium hover:bg-red-50 transition-colors flex items-center justify-center gap-2"
+            >
+              <Trash2 className="w-4 h-4" />
+              删除记录
+            </button>
+
+            {/* Delete Confirmation Modal */}
+            {showDeleteConfirm && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                <div className="bg-white rounded-2xl p-6 max-w-sm w-full">
+                  <h3 className="text-lg font-semibold text-slate-900 mb-2">确认删除？</h3>
+                  <p className="text-slate-600 mb-6">此操作不可撤销，检测记录将被永久删除。</p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setShowDeleteConfirm(false)}
+                      className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition-colors"
+                    >
+                      取消
+                    </button>
+                    <button
+                      onClick={handleDelete}
+                      disabled={deleting}
+                      className="flex-1 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      {deleting ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          删除中...
+                        </>
+                      ) : (
+                        "确认删除"
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </main>
