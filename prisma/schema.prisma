@@ -78,17 +78,18 @@ enum ScanStatus {
 
 // 挑战模型 - 用于好友PK功能
 model Challenge {
-  id            String          @id @default(cuid())
-  creatorScanId String
-  creatorName   String
-  creatorScore  Int
-  friendName    String?
-  friendScanId  String?
-  friendScore   Int?
-  status        ChallengeStatus @default(PENDING)
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
-  expiresAt     DateTime?
+  id                String          @id @default(cuid())
+  creatorScanId     String
+  creatorName       String
+  creatorScore      Int
+  friendName        String?
+  friendScanId      String?
+  friendScore       Int?
+  status            ChallengeStatus @default(PENDING)
+  acquisitionSource String?         // 邀请来源: wechat, link, copy, qr
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  expiresAt         DateTime?
 
   @@map("challenges")
 }

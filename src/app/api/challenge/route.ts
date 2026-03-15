@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { creatorScanId, creatorName, creatorScore, friendName } = body;
+    const { creatorScanId, creatorName, creatorScore, friendName, acquisitionSource } = body;
 
     // Validation
     if (!creatorScanId || !creatorName) {
@@ -70,6 +70,7 @@ export async function POST(request: NextRequest) {
         creatorName: creatorName.slice(0, 20), // Limit name length
         creatorScore: creatorScore || scan.overallScore || 0,
         friendName: friendName?.slice(0, 20) || null,
+        acquisitionSource: acquisitionSource || null,
         status: "PENDING",
         expiresAt,
       },
