@@ -44,3 +44,7 @@ next-env.d.ts
 TODO.md
 *.todo.md
 **/TODO.md
+
+# CEO Planning
+TODO.md
+.worktrees/*/TODO.md
